@@ -13,12 +13,12 @@ import java.time.LocalDateTime;
 public class GroupMemberResponse {
     
     private Long id;
-    private GroupRole role;
+    private String status; // Changed from GroupRole to String to match entity
     private LocalDateTime joinedAt;
     private Boolean isActive;
     
     // User information
-    private Long userId;
+    private String userId; // Changed from Long to String to match mobile number
     private String firstName;
     private String lastName;
     private String mobileNumber;

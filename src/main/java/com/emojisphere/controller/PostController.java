@@ -137,8 +137,9 @@ public class PostController {
 
     @PostMapping("/{postId}/like")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> toggleLike(@PathVariable Long postId, @RequestParam Long userId) {
-        boolean liked = postService.toggleLike(postId, userId);
+    public ResponseEntity<?> toggleLike(@PathVariable Long postId, Authentication authentication) {
+        String userMobile = authentication.getName();
+        boolean liked = postService.toggleLike(postId, userMobile);
         return ResponseEntity.ok().body(liked ? "liked" : "unliked");
     }
 }

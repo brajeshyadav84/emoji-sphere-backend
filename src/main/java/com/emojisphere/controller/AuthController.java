@@ -1,10 +1,7 @@
 package com.emojisphere.controller;
 
 import com.emojisphere.dto.*;
-import com.emojisphere.entity.ERole;
-import com.emojisphere.entity.Role;
 import com.emojisphere.entity.User;
-import com.emojisphere.repository.RoleRepository;
 import com.emojisphere.repository.UserRepository;
 import com.emojisphere.service.OtpService;
 import com.emojisphere.service.UserDetailsServiceImpl;
@@ -17,15 +14,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -37,9 +33,6 @@ public class AuthController {
 
     @Autowired
     UserRepository userRepository;
-
-    @Autowired
-    RoleRepository roleRepository;
 
     @Autowired
     PasswordEncoder encoder;
@@ -71,11 +64,32 @@ public class AuthController {
         boolean isValid = otpService.verifyOtp(otpVerifyRequest.getMobile(), otpVerifyRequest.getOtp());
         
         if (isValid) {
-            return ResponseEntity.ok(new MessageResponse("OTP verified successfully"));
+            return ResponseEntity.ok(new ValidationResponse(true, "OTP verified successfully"));
         } else {
             return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Invalid or expired OTP"));
+                    .body(new ValidationResponse(false, "Invalid or expired OTP"));
         }
+    }
+
+    @PostMapping("/validate-mobile")
+    public ResponseEntity<?> validateMobile(@Valid @RequestBody OtpRequest otpRequest) {
+        // Check if mobile number is already registered
+        if (userRepository.existsByMobileNumber(otpRequest.getMobile())) {
+            return ResponseEntity.badRequest()
+                    .body(new ValidationResponse(false, "Mobile number is already registered!"));
+        }
+        
+        return ResponseEntity.ok(new ValidationResponse(true, "Mobile number is available"));
+    }
+
+    @PostMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestBody String email) {
+        if (email != null && !email.trim().isEmpty() && userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest()
+                    .body(new ValidationResponse(false, "Email is already in use!"));
+        }
+        
+        return ResponseEntity.ok(new ValidationResponse(true, "Email is available"));
     }
 
     @PostMapping("/signin")
@@ -90,16 +104,13 @@ public class AuthController {
         String jwt = generateJwtToken(authentication);
 
         UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(new JwtResponse(jwt,
                 userDetails.getId(),
-                userDetails.getName(),
+                userDetails.getFullName(),
                 userDetails.getMobile(),
                 userDetails.getEmail(),
-                roles));
+                "USER")); // Default role
     }
 
     @PostMapping("/signup")
@@ -126,53 +137,20 @@ public class AuthController {
                     .body(new MessageResponse("Error: Please verify your mobile number with OTP first!"));
         }
 
-    // Split name into firstName and lastName
-    String[] nameParts = signUpRequest.getName().trim().split(" ", 2);
-    String firstName = nameParts[0];
-    String lastName = nameParts.length > 1 ? nameParts[1] : "";
-    // Create new user's account with correct constructor
-    User user = new User(
-        firstName,
-        lastName,
-        signUpRequest.getMobile(),
-        encoder.encode(signUpRequest.getPassword()),
-        signUpRequest.getAge(),
-        signUpRequest.getLocation(),
-        signUpRequest.getGender()
-    );
+        // Create new user's account with new constructor
+        User user = new User(
+            signUpRequest.getMobile(),
+            signUpRequest.getFullName(),
+            encoder.encode(signUpRequest.getPassword()),
+            signUpRequest.getAge(),
+            signUpRequest.getCountry(),
+            signUpRequest.getGender()
+        );
 
         user.setEmail(signUpRequest.getEmail());
         user.setIsVerified(true); // Set as verified since OTP was verified
+        user.setRole("USER"); // Default role
 
-        Set<String> strRoles = signUpRequest.getRole();
-        Set<Role> roles = new HashSet<>();
-
-        if (strRoles == null) {
-            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            roles.add(userRole);
-        } else {
-            strRoles.forEach(role -> {
-                switch (role) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(adminRole);
-                        break;
-                    case "mod":
-                        Role modRole = roleRepository.findByName(ERole.ROLE_MODERATOR)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(modRole);
-                        break;
-                    default:
-                        Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(userRole);
-                }
-            });
-        }
-
-        user.setRoles(roles);
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
@@ -212,10 +190,10 @@ public class AuthController {
         }
 
         // Find user and update password
-    User user = userRepository.findByMobileNumber(resetPasswordRequest.getMobile())
-        .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByMobileNumber(resetPasswordRequest.getMobile())
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setPassword(encoder.encode(resetPasswordRequest.getNewPassword()));
+        user.setPasswordHash(encoder.encode(resetPasswordRequest.getNewPassword()));
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("Password reset successfully!"));
@@ -224,11 +202,12 @@ public class AuthController {
     private String generateJwtToken(Authentication authentication) {
         UserDetailsServiceImpl.UserPrincipal userPrincipal = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
 
+        SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
         return Jwts.builder()
                 .setSubject((userPrincipal.getMobile())) // Use mobile as subject
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpiration))
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .signWith(key)
                 .compact();
     }
 }

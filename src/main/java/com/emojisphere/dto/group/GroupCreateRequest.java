@@ -1,6 +1,5 @@
 package com.emojisphere.dto.group;
 
-import com.emojisphere.entity.GroupPrivacy;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,5 +20,5 @@ public class GroupCreateRequest {
     private String description;
     
     @NotNull(message = "Privacy setting is required")
-    private GroupPrivacy privacy;
+    private String privacy;
 }

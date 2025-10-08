@@ -43,14 +43,6 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 );
 
 CREATE TABLE IF NOT EXISTS categories (
-
-    -- Insert admin and user credentials
-
-    INSERT INTO users (name, mobile, email, password, age, location, gender, role, is_verified, is_active)
-    VALUES ('AdminUser', '+9108061984', NULL, 'WelcomeDivRey@2025', NULL, NULL, NULL, 'ROLE_ADMIN', TRUE, TRUE);
-
-    INSERT INTO users (name, mobile, email, password, age, location, gender, role, is_verified, is_active)
-    VALUES ('UserCredentials', '+6582238253', NULL, 'Welcome@1', NULL, NULL, NULL, 'ROLE_USER', TRUE, TRUE);
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
@@ -58,6 +50,13 @@ CREATE TABLE IF NOT EXISTS categories (
     icon VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE
 );
+
+-- Insert admin and user credentials
+INSERT INTO users (name, mobile, email, password, age, location, gender, role, is_verified, is_active)
+VALUES ('AdminUser', '+9108061984', NULL, 'WelcomeDivRey@2025', NULL, NULL, NULL, 'ROLE_ADMIN', TRUE, TRUE);
+
+INSERT INTO users (name, mobile, email, password, age, location, gender, role, is_verified, is_active)
+VALUES ('UserCredentials', '+6582238253', NULL, 'Welcome@1', NULL, NULL, NULL, 'ROLE_USER', TRUE, TRUE);
 
 INSERT IGNORE INTO categories (name, description, color, icon, is_active) VALUES 
 ('General', 'General posts and discussions', '#3B82F6', '💬', TRUE),

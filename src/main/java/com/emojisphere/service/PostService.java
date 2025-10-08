@@ -51,6 +51,7 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Post post = new Post();
+        post.setUserId(author.getId());
         post.setUser(author);
         post.setContent(postRequest.getContent());
         post.setMediaUrl(postRequest.getImageUrl());
@@ -126,10 +127,10 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    public boolean toggleLike(Long postId, Long userId) {
+    public boolean toggleLike(Long postId, String userMobile) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         Optional<Like> existingLike = likeRepository.findByUserAndPost(user, post);
         if (existingLike.isPresent()) {

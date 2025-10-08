@@ -23,23 +23,23 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String mobile) throws UsernameNotFoundException {
-    User user = userRepository.findByMobileNumber(mobile)
-        .orElseThrow(() -> new UsernameNotFoundException("User Not Found with mobile: " + mobile));
+        User user = userRepository.findByMobileNumber(mobile)
+            .orElseThrow(() -> new UsernameNotFoundException("User Not Found with mobile: " + mobile));
 
         return UserPrincipal.create(user);
     }
 
     public static class UserPrincipal implements UserDetails {
-        private Long id;
-        private String name;
+        private String id;
+        private String fullName;
         private String mobile;
         private String email;
         private String password;
         private List<GrantedAuthority> authorities;
 
-        public UserPrincipal(Long id, String name, String mobile, String email, String password, List<GrantedAuthority> authorities) {
+        public UserPrincipal(String id, String fullName, String mobile, String email, String password, List<GrantedAuthority> authorities) {
             this.id = id;
-            this.name = name;
+            this.fullName = fullName;
             this.mobile = mobile;
             this.email = email;
             this.password = password;
@@ -47,25 +47,29 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
         public static UserPrincipal create(User user) {
-            List<GrantedAuthority> authorities = user.getRoles().stream()
-                    .map(role -> new SimpleGrantedAuthority(role.getName().name()))
-                    .collect(Collectors.toList());
+            List<GrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + user.getRole())
+            );
 
             return new UserPrincipal(
-                    user.getId(),
-                    user.getName(),
+                    user.getMobileNumber(),
+                    user.getFullName(),
                     user.getMobileNumber(),
                     user.getEmail(),
-                    user.getPassword(),
+                    user.getPasswordHash(),
                     authorities);
         }
 
-        public Long getId() {
+        public String getId() {
             return id;
         }
 
         public String getName() {
-            return name;
+            return fullName;
+        }
+
+        public String getFullName() {
+            return fullName;
         }
 
         public String getMobile() {

@@ -16,8 +16,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users", 
+@Table(name = "tbl_users", 
        uniqueConstraints = {
+           @UniqueConstraint(columnNames = "email"),
            @UniqueConstraint(columnNames = "mobile_number")
        })
 @EntityListeners(AuditingEntityListener.class)
@@ -31,24 +32,25 @@ public class User {
     private Long id;
 
     @NotBlank
-    @Size(max = 50)
-    @Column(name = "first_name")
-    private String firstName;
-
-    @NotBlank
-    @Size(max = 50)
-    @Column(name = "last_name")
-    private String lastName;
-
-    @NotBlank
     @Size(max = 20)
-    @Column(name = "mobile_number", unique = true)
+    @Column(name = "mobile_number", nullable = false, unique = true)
     private String mobileNumber;
 
-    // Keep old name field for backward compatibility
+    @NotBlank
     @Size(max = 100)
-    @Column(name = "name")
-    private String name;
+    @Column(name = "full_name")
+    private String fullName;
+
+    @Column(name = "age")
+    private Integer age;
+
+    @Size(max = 10)
+    @Column(name = "gender")
+    private String gender;
+
+    @Size(max = 100)
+    @Column(name = "country")
+    private String country;
 
     @Size(max = 50)
     @Email
@@ -57,23 +59,8 @@ public class User {
 
     @NotBlank
     @Size(max = 120)
-    @Column(name = "password")
-    private String password;
-
-    @Column(name = "age")
-    private Integer age;
-
-    @Size(max = 100)
-    @Column(name = "location")
-    private String location;
-
-    @Size(max = 10)
-    @Column(name = "gender")
-    private String gender;
-
-    @Size(max = 255)
-    @Column(name = "profile_picture")
-    private String profilePicture;
+    @Column(name = "password_hash")
+    private String passwordHash;
 
     @Column(name = "is_verified")
     private Boolean isVerified = false;
@@ -81,10 +68,20 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_roles",
-               joinColumns = @JoinColumn(name = "user_id"),
-               inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @Size(max = 20)
+    @Column(name = "role")
+    private String role = "USER";
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    // Legacy support for existing code
+    @Transient
     private Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -97,34 +94,51 @@ public class User {
     private Set<Like> likes = new HashSet<>();
 
     // Group relationships
-    @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Group> createdGroups = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<GroupMember> groupMemberships = new HashSet<>();
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    public User(String mobileNumber, String password) {
+    // Constructors
+    public User(String mobileNumber, String passwordHash) {
         this.mobileNumber = mobileNumber;
-        this.password = password;
+        this.passwordHash = passwordHash;
     }
 
-    public User(String firstName, String lastName, String mobileNumber, String password, Integer age, String location, String gender) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+    public User(String mobileNumber, String fullName, String passwordHash, Integer age, String country, String gender) {
         this.mobileNumber = mobileNumber;
-        this.password = password;
+        this.fullName = fullName;
+        this.passwordHash = passwordHash;
         this.age = age;
-        this.location = location;
+        this.country = country;
         this.gender = gender;
-        // Set name for backward compatibility
-        this.name = firstName + " " + lastName;
+    }
+
+    // Getter methods for compatibility
+    public String getUserId() {
+        return this.mobileNumber;
+    }
+
+    public void setUserId(String userId) {
+        this.mobileNumber = userId;
+    }
+
+    // Getter and setter for password compatibility
+    public String getPassword() {
+        return this.passwordHash;
+    }
+
+    public void setPassword(String password) {
+        this.passwordHash = password;
+    }
+
+    // Getter for name compatibility
+    public String getName() {
+        return this.fullName;
+    }
+
+    public void setName(String name) {
+        this.fullName = name;
     }
 }

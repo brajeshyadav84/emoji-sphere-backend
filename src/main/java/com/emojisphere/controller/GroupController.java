@@ -326,7 +326,7 @@ public class GroupController {
     
     @DeleteMapping("/{groupId}/members/{memberId}")
     public ResponseEntity<?> removeMember(@PathVariable Long groupId, 
-                                        @PathVariable Long memberId, 
+                                        @PathVariable String memberId, 
                                         Authentication authentication) {
         try {
             String userMobile = authentication.getName();
@@ -363,7 +363,7 @@ public class GroupController {
     
     @PostMapping("/{groupId}/members/{memberId}/promote")
     public ResponseEntity<?> promoteToAdmin(@PathVariable Long groupId, 
-                                          @PathVariable Long memberId, 
+                                          @PathVariable String memberId, 
                                           Authentication authentication) {
         try {
             String userMobile = authentication.getName();
@@ -382,7 +382,7 @@ public class GroupController {
     
     @PostMapping("/{groupId}/members/{memberId}/demote")
     public ResponseEntity<?> demoteFromAdmin(@PathVariable Long groupId, 
-                                           @PathVariable Long memberId, 
+                                           @PathVariable String memberId, 
                                            Authentication authentication) {
         try {
             String userMobile = authentication.getName();

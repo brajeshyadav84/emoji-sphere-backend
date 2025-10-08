@@ -36,12 +36,12 @@ public class GroupMemberService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is member of the group to view members
-        if (!groupMemberRepository.existsByGroupAndUserAndIsActiveTrue(group, user)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
             throw new RuntimeException("You must be a member to view group members");
         }
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("joinedAt").ascending());
-        Page<GroupMember> members = groupMemberRepository.findByGroupAndIsActiveTrue(group, pageable);
+        Page<GroupMember> members = groupMemberRepository.findByGroupId(group.getId(), pageable);
         
         return members.map(this::convertToGroupMemberResponse);
     }
@@ -54,18 +54,12 @@ public class GroupMemberService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is member of the group
-        if (!groupMemberRepository.existsByGroupAndUserAndIsActiveTrue(group, user)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
             throw new RuntimeException("You must be a member to search group members");
         }
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("joinedAt").ascending());
-        Page<GroupMember> members;
-        
-        if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            members = groupMemberRepository.findByGroupAndIsActiveTrue(group, pageable);
-        } else {
-            members = groupMemberRepository.searchMembersByUserDetails(group, searchTerm.trim(), pageable);
-        }
+        Page<GroupMember> members = groupMemberRepository.findByGroupId(group.getId(), pageable);
         
         return members.map(this::convertToGroupMemberResponse);
     }
@@ -78,46 +72,46 @@ public class GroupMemberService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is member of the group
-        if (!groupMemberRepository.existsByGroupAndUserAndIsActiveTrue(group, user)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
             throw new RuntimeException("You must be a member to view group admins");
         }
         
-        List<GroupMember> admins = groupMemberRepository.findByGroupAndRoleAndIsActiveTrue(group, GroupRole.ADMIN);
+        List<GroupMember> admins = groupMemberRepository.findByGroupIdAndStatus(group.getId(), "ADMIN");
         return admins.stream()
                 .map(this::convertToGroupMemberResponse)
                 .collect(Collectors.toList());
     }
     
-    public void removeMember(Long groupId, Long memberId, String userMobile) {
+    public void removeMember(Long groupId, String memberId, String userMobile) {
         User admin = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
-        User memberToRemove = userRepository.findById(memberId)
+        User memberToRemove = userRepository.findByMobileNumber(memberId)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
         
         // Check if requesting user is admin
-        if (!groupMemberRepository.isUserAdminOfGroup(group, admin)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getMobileNumber(), "ADMIN")) {
             throw new RuntimeException("Only admins can remove members");
         }
         
         // Check if member exists in group
-        if (!groupMemberRepository.existsByGroupAndUserAndIsActiveTrue(group, memberToRemove)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), memberToRemove.getMobileNumber())) {
             throw new RuntimeException("User is not a member of this group");
         }
         
         // Cannot remove yourself as admin if you're the only admin
-        if (admin.getId().equals(memberId)) {
-            long adminCount = groupMemberRepository.countByGroupAndRoleAndIsActiveTrue(group, GroupRole.ADMIN);
+        if (admin.getMobileNumber().equals(memberId)) {
+            long adminCount = groupMemberRepository.countByGroupIdAndStatus(group.getId(), "ADMIN");
             if (adminCount == 1) {
                 throw new RuntimeException("Cannot remove yourself as you are the only admin");
             }
         }
         
         // Remove member
-        groupMemberRepository.removeMemberFromGroup(group, memberToRemove);
+        groupMemberRepository.deleteByGroupIdAndUserId(group.getId(), memberToRemove.getMobileNumber());
     }
     
     public void removeMultipleMembers(MemberDeleteRequest request, String userMobile) {
@@ -128,93 +122,93 @@ public class GroupMemberService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if requesting user is admin
-        if (!groupMemberRepository.isUserAdminOfGroup(group, admin)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getMobileNumber(), "ADMIN")) {
             throw new RuntimeException("Only admins can remove members");
         }
         
         // Check if admin is trying to remove themselves and they're the only admin
-        if (request.getUserIds().contains(admin.getId())) {
-            long adminCount = groupMemberRepository.countByGroupAndRoleAndIsActiveTrue(group, GroupRole.ADMIN);
+        if (request.getUserIds().contains(admin.getMobileNumber())) {
+            long adminCount = groupMemberRepository.countByGroupIdAndStatus(group.getId(), "ADMIN");
             if (adminCount == 1) {
                 throw new RuntimeException("Cannot remove yourself as you are the only admin");
             }
         }
         
         // Validate all users are members
-        List<User> usersToRemove = userRepository.findAllById(request.getUserIds());
-        if (usersToRemove.size() != request.getUserIds().size()) {
-            throw new RuntimeException("One or more users not found");
-        }
-        
-        for (User user : usersToRemove) {
-            if (!groupMemberRepository.existsByGroupAndUserAndIsActiveTrue(group, user)) {
-                throw new RuntimeException("User " + user.getFirstName() + " " + user.getLastName() + " is not a member of this group");
+        for (String userId : request.getUserIds()) {
+            User userToRemove = userRepository.findByMobileNumber(userId)
+                    .orElseThrow(() -> new RuntimeException("User with mobile " + userId + " not found"));
+            
+            if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), userId)) {
+                throw new RuntimeException("User " + userToRemove.getFullName() + " is not a member of this group");
             }
         }
         
         // Remove members
-        groupMemberRepository.removeMembersFromGroup(group, request.getUserIds());
+        for (String userId : request.getUserIds()) {
+            groupMemberRepository.deleteByGroupIdAndUserId(group.getId(), userId);
+        }
     }
     
-    public void promoteToAdmin(Long groupId, Long memberId, String userMobile) {
+    public void promoteToAdmin(Long groupId, String memberId, String userMobile) {
         User admin = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
-        User memberToPromote = userRepository.findById(memberId)
+        User memberToPromote = userRepository.findByMobileNumber(memberId)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
         
         // Check if requesting user is admin
-        if (!groupMemberRepository.isUserAdminOfGroup(group, admin)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getMobileNumber(), "ADMIN")) {
             throw new RuntimeException("Only admins can promote members");
         }
         
         // Get member record
-        GroupMember member = groupMemberRepository.findByGroupAndUserAndIsActiveTrue(group, memberToPromote)
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(group.getId(), memberToPromote.getMobileNumber())
                 .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
         
-        if (member.getRole() == GroupRole.ADMIN) {
+        if ("ADMIN".equals(member.getStatus())) {
             throw new RuntimeException("User is already an admin");
         }
         
         // Promote to admin
-        member.setRole(GroupRole.ADMIN);
+        member.setStatus("ADMIN");
         groupMemberRepository.save(member);
     }
     
-    public void demoteFromAdmin(Long groupId, Long memberId, String userMobile) {
+    public void demoteFromAdmin(Long groupId, String memberId, String userMobile) {
         User admin = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
-        User memberToDemote = userRepository.findById(memberId)
+        User memberToDemote = userRepository.findByMobileNumber(memberId)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
         
         // Check if requesting user is admin
-        if (!groupMemberRepository.isUserAdminOfGroup(group, admin)) {
+        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getMobileNumber(), "ADMIN")) {
             throw new RuntimeException("Only admins can demote members");
         }
         
         // Cannot demote if only admin left
-        long adminCount = groupMemberRepository.countByGroupAndRoleAndIsActiveTrue(group, GroupRole.ADMIN);
+        long adminCount = groupMemberRepository.countByGroupIdAndStatus(group.getId(), "ADMIN");
         if (adminCount == 1) {
             throw new RuntimeException("Cannot demote the only admin. Promote another member first.");
         }
         
         // Get member record
-        GroupMember member = groupMemberRepository.findByGroupAndUserAndIsActiveTrue(group, memberToDemote)
+        GroupMember member = groupMemberRepository.findByGroupIdAndUserId(group.getId(), memberToDemote.getMobileNumber())
                 .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
         
-        if (member.getRole() == GroupRole.MEMBER) {
+        if ("MEMBER".equals(member.getStatus())) {
             throw new RuntimeException("User is already a regular member");
         }
         
         // Demote to member
-        member.setRole(GroupRole.MEMBER);
+        member.setStatus("MEMBER");
         groupMemberRepository.save(member);
     }
     
@@ -222,18 +216,21 @@ public class GroupMemberService {
         GroupMemberResponse response = modelMapper.map(member, GroupMemberResponse.class);
         
         // Set user info
-        User user = member.getUser();
-        response.setUserId(user.getId());
-        response.setFirstName(user.getFirstName());
-        response.setLastName(user.getLastName());
-        response.setMobileNumber(user.getMobileNumber());
-        response.setEmail(user.getEmail());
-        response.setProfilePicture(user.getProfilePicture());
+        User user = userRepository.findByMobileNumber(member.getUserId()).orElse(null);
+        if (user != null) {
+            response.setUserId(user.getMobileNumber());
+            response.setFirstName(user.getFullName().split(" ")[0]);
+            response.setLastName(user.getFullName().contains(" ") ? user.getFullName().substring(user.getFullName().indexOf(" ") + 1) : "");
+            response.setMobileNumber(user.getMobileNumber());
+            response.setEmail(user.getEmail());
+        }
         
         // Set group info
-        Group group = member.getGroup();
-        response.setGroupId(group.getId());
-        response.setGroupName(group.getName());
+        Group group = groupRepository.findById(member.getGroupId()).orElse(null);
+        if (group != null) {
+            response.setGroupId(group.getId());
+            response.setGroupName(group.getName());
+        }
         
         return response;
     }

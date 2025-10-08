@@ -1,6 +1,5 @@
 package com.emojisphere.dto.group;
 
-import com.emojisphere.entity.GroupPrivacy;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,5 +16,5 @@ public class GroupUpdateRequest {
     @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
     
-    private GroupPrivacy privacy;
+    private String privacy;
 }

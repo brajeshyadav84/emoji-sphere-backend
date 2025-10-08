@@ -12,7 +12,7 @@ public class SignupRequest {
     
     @NotBlank
     @Size(min = 2, max = 100)
-    private String name;
+    private String fullName;
     
     @NotBlank
     @Size(max = 20)
@@ -20,7 +20,7 @@ public class SignupRequest {
     
     @Size(max = 50)
     @Email
-    private String email;
+    private String email; // Optional field
     
     @NotBlank
     @Size(min = 6, max = 40)
@@ -32,10 +32,21 @@ public class SignupRequest {
     
     private Integer age;
     
-    private String location;
+    @Size(max = 100)
+    private String country;
     
     @NotBlank
+    @Size(max = 10)
     private String gender;
     
     private Set<String> role;
+
+    // Backward compatibility getters
+    public String getName() {
+        return this.fullName;
+    }
+
+    public void setName(String name) {
+        this.fullName = name;
+    }
 }

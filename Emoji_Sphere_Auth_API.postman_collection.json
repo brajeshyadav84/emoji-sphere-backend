@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "Emoji Sphere Authentication API",
+    "description": "Complete authentication API collection for Emoji Sphere",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Send OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/send-otp",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "send-otp"]
+        }
+      }
+    },
+    {
+      "name": "2. Verify OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\",\n  \"otp\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/verify-otp",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "3. Validate Mobile",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/validate-mobile",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "validate-mobile"]
+        }
+      }
+    },
+    {
+      "name": "4. Check Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "\"user@example.com\""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/check-email",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "check-email"]
+        }
+      }
+    },
+    {
+      "name": "5. Sign Up",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"mobile\": \"+1234567890\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"securePassword123\",\n  \"confirmPassword\": \"securePassword123\",\n  \"age\": 25,\n  \"country\": \"United States\",\n  \"gender\": \"Male\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "signup"]
+        }
+      }
+    },
+    {
+      "name": "6. Sign In",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\",\n  \"password\": \"securePassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/signin",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "signin"]
+        }
+      }
+    },
+    {
+      "name": "7. Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/forgot-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "forgot-password"]
+        }
+      }
+    },
+    {
+      "name": "8. Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mobile\": \"+1234567890\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newSecurePassword123\",\n  \"confirmPassword\": \"newSecurePassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/reset-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "reset-password"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

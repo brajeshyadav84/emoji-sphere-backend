@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "`groups`")
+@Table(name = "tbl_groups")
 @EntityListeners(AuditingEntityListener.class)
 @Data
 @NoArgsConstructor
@@ -33,42 +33,35 @@ public class Group {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Size(max = 10)
-    @Column(name = "emoji")
-    private String emoji;
+    @Size(max = 50)
+    @Column(name = "email")
+    private String email;
 
     @Size(max = 500)
     @Column(name = "description")
     private String description;
 
-    @Enumerated(EnumType.STRING)
+    @Size(max = 20)
     @Column(name = "privacy")
-    private GroupPrivacy privacy = GroupPrivacy.PUBLIC;
+    private String privacy = "PUBLIC";
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private User createdBy;
-
-    @Column(name = "is_active")
-    private Boolean isActive = true;
-
-    @Column(name = "member_count")
-    private Integer memberCount = 0;
-
-    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<GroupMember> members = new HashSet<>();
+    @Column(name = "created_by", nullable = false)
+    private String createdBy;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<GroupMember> members = new HashSet<>();
 
-    public Group(String name, String emoji, String description, GroupPrivacy privacy, User createdBy) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", referencedColumnName = "mobile_number", insertable = false, updatable = false)
+    private User creator;
+
+    public Group(String name, String email, String description, String privacy, String createdBy) {
         this.name = name;
-        this.emoji = emoji;
+        this.email = email;
         this.description = description;
         this.privacy = privacy;
         this.createdBy = createdBy;

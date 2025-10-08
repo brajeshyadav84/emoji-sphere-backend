@@ -30,7 +30,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p JOIN p.tags t WHERE t.id = :tagId AND p.isPublic = true")
     Page<Post> findByTag(@Param("tagId") Long tagId, Pageable pageable);
     
-    @Query("SELECT p FROM Post p WHERE p.isPublic = true AND p.createdAt >= :startDate ORDER BY p.likesCount DESC")
+    @Query("SELECT p FROM Post p WHERE p.isPublic = true AND p.createdAt >= :startDate ORDER BY SIZE(p.likes) DESC")
     List<Post> findTrendingPosts(@Param("startDate") LocalDateTime startDate, Pageable pageable);
     
     @Query("SELECT p FROM Post p WHERE p.isPublic = true ORDER BY p.createdAt DESC")

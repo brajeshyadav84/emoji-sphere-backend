@@ -67,9 +67,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     }
 
     public String getMobileFromJwtToken(String token) {
-        SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        return Jwts.parser()
+        SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+        return Jwts.parserBuilder()
             .setSigningKey(key)
+            .build()
             .parseClaimsJws(token)
             .getBody()
             .getSubject();
@@ -81,9 +82,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     public boolean validateJwtToken(String authToken) {
         try {
-            SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            Jwts.parser()
+            SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+            Jwts.parserBuilder()
                     .setSigningKey(key)
+                    .build()
                     .parseClaimsJws(authToken);
             return true;
         } catch (MalformedJwtException e) {
