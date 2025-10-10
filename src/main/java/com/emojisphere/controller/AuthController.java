@@ -203,7 +203,7 @@ public class AuthController {
     private String generateJwtToken(Authentication authentication) {
         UserDetailsServiceImpl.UserPrincipal userPrincipal = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
 
-        SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
+        SecretKeySpec key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return Jwts.builder()
                 .setSubject((userPrincipal.getMobile())) // Use mobile as subject
                 .setIssuedAt(new Date())

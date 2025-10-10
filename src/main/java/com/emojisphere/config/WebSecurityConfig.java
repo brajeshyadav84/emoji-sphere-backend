@@ -66,6 +66,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/posts/**").permitAll()
                 .requestMatchers("/categories/**").permitAll()
                 .requestMatchers("/comments/**").permitAll()
+                .requestMatchers("/posts/*/comments/**").permitAll()
                 .requestMatchers("/zoom-signature").permitAll()
                 .requestMatchers("/api/groups/**").permitAll()
                 .anyRequest().authenticated()
