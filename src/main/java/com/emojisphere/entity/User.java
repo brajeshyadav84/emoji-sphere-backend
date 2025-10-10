@@ -52,6 +52,10 @@ public class User {
     @Column(name = "country")
     private String country;
 
+    @Size(max = 255)
+    @Column(name = "school_name")
+    private String schoolName;
+
     @Size(max = 50)
     @Email
     @Column(name = "email")
@@ -113,6 +117,16 @@ public class User {
         this.age = age;
         this.country = country;
         this.gender = gender;
+    }
+
+    public User(String mobileNumber, String fullName, String passwordHash, Integer age, String country, String gender, String schoolName) {
+        this.mobileNumber = mobileNumber;
+        this.fullName = fullName;
+        this.passwordHash = passwordHash;
+        this.age = age;
+        this.country = country;
+        this.gender = gender;
+        this.schoolName = schoolName;
     }
 
     // Getter methods for compatibility

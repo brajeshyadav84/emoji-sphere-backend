@@ -144,7 +144,8 @@ public class AuthController {
             encoder.encode(signUpRequest.getPassword()),
             signUpRequest.getAge(),
             signUpRequest.getCountry(),
-            signUpRequest.getGender()
+            signUpRequest.getGender(),
+            signUpRequest.getSchoolName()
         );
 
         user.setEmail(signUpRequest.getEmail());

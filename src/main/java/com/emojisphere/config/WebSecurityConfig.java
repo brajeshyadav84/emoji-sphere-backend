@@ -57,25 +57,20 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors().and().csrf().disable()
-                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeHttpRequests()
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/posts").permitAll()
-                .requestMatchers("/posts/{id}").permitAll()
-                .requestMatchers("/posts/{id}/with-comments").permitAll()
-                .requestMatchers("/posts/search").permitAll()
-                .requestMatchers("/posts/trending").permitAll()
-                .requestMatchers("/posts/user/{mobile}").permitAll()
+                .requestMatchers("/posts/**").permitAll()
                 .requestMatchers("/categories/**").permitAll()
-                .requestMatchers("/comments/posts/{postId}").permitAll()
-                .requestMatchers("/comments/{commentId}/replies").permitAll()
-                .requestMatchers("/api/zoom-signature").permitAll()
-                .anyRequest().authenticated();
-
+                .requestMatchers("/comments/**").permitAll()
+                .requestMatchers("/zoom-signature").permitAll()
+                .requestMatchers("/api/groups/**").permitAll()
+                .anyRequest().authenticated()
+            );
         http.authenticationProvider(authenticationProvider());
-
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
