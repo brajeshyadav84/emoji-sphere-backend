@@ -3,6 +3,9 @@ package com.emojisphere.service;
 import com.emojisphere.dto.CommentResponse;
 import com.emojisphere.dto.PostRequest;
 import com.emojisphere.dto.PostResponse;
+import com.emojisphere.dto.UserResponse;
+import com.emojisphere.dto.CategoryResponse;
+import com.emojisphere.dto.TagResponse;
 import com.emojisphere.entity.*;
 import com.emojisphere.repository.*;
 import org.modelmapper.ModelMapper;
@@ -19,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,8 +57,28 @@ public class PostService {
         Post post = new Post();
         post.setUserId(author.getId());
         post.setUser(author);
+        post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setMediaUrl(postRequest.getImageUrl());
+        post.setIsPublic(postRequest.getIsPublic() != null ? postRequest.getIsPublic() : true);
+        post.setCategoryId(postRequest.getCategoryId());
+        post.setLikesCount(0L);
+        
+        // Handle tags if provided
+        if (postRequest.getTags() != null && !postRequest.getTags().isEmpty()) {
+            Set<Tag> tags = new HashSet<>();
+            for (String tagName : postRequest.getTags()) {
+                Tag tag = tagRepository.findByName(tagName.toLowerCase())
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setName(tagName.toLowerCase());
+                        return tagRepository.save(newTag);
+                    });
+                tags.add(tag);
+            }
+            post.setTags(tags);
+        }
+        
         Post savedPost = postRepository.save(post);
         return convertToResponse(savedPost, mobile);
     }
@@ -144,7 +168,38 @@ public class PostService {
     }
 
     private PostResponse convertToResponse(Post post, String currentMobile) {
-        PostResponse response = modelMapper.map(post, PostResponse.class);
+        PostResponse response = new PostResponse();
+        
+        // Map basic fields manually
+        response.setId(post.getId());
+        response.setTitle(post.getTitle());
+        response.setContent(post.getContent());
+        response.setImageUrl(post.getMediaUrl());
+        response.setIsPublic(post.getIsPublic());
+        response.setCreatedAt(post.getCreatedAt());
+        response.setUpdatedAt(post.getUpdatedAt());
+        
+        // Map author (user)
+        if (post.getUser() != null) {
+            response.setAuthor(modelMapper.map(post.getUser(), UserResponse.class));
+        }
+        
+        // Map category manually to avoid conflict
+        if (post.getCategory() != null) {
+            response.setCategory(modelMapper.map(post.getCategory(), CategoryResponse.class));
+        }
+        
+        // Map tags
+        if (post.getTags() != null) {
+            Set<TagResponse> tagResponses = post.getTags().stream()
+                    .map(tag -> modelMapper.map(tag, TagResponse.class))
+                    .collect(Collectors.toSet());
+            response.setTags(tagResponses);
+        }
+        
+        // Set counts
+        response.setLikesCount(post.getLikes() != null ? post.getLikes().size() : 0);
+        response.setCommentsCount(post.getComments() != null ? post.getComments().size() : 0);
         
         // Check if current user liked this post
         if (currentMobile != null) {
@@ -153,7 +208,11 @@ public class PostService {
                 response.setIsLikedByCurrentUser(
                     likeRepository.existsByUserAndPost(currentUser, post)
                 );
+            } else {
+                response.setIsLikedByCurrentUser(false);
             }
+        } else {
+            response.setIsLikedByCurrentUser(false);
         }
         
         return response;
