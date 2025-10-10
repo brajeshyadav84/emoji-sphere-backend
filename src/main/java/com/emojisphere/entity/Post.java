@@ -79,9 +79,6 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Comment> comments = new HashSet<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Like> likes = new HashSet<>();
-
     // Derived field for likes count (computed from likes collection size)
     @Column(name = "likes_count", nullable = false)
     private Long likesCount = 0L;
@@ -195,11 +192,11 @@ public class Post {
         this.comments = comments;
     }
 
-    public Set<Like> getLikes() {
-        return likes;
+    public Long getLikesCount() {
+        return likesCount;
     }
 
-    public void setLikes(Set<Like> likes) {
-        this.likes = likes;
+    public void setLikesCount(Long likesCount) {
+        this.likesCount = likesCount;
     }
 }

@@ -211,7 +211,7 @@ public class PostService {
         }
         
         // Set counts
-        response.setLikeCount(post.getLikes() != null ? post.getLikes().size() : 0);
+        response.setLikeCount(post.getLikesCount() != null ? post.getLikesCount().intValue() : 0);
         
         // Get top-level comments
         List<Comment> topLevelComments = commentRepository.findTopLevelCommentsByPost(
@@ -455,10 +455,16 @@ public class PostService {
         Optional<Like> existingLike = likeRepository.findByUserAndPost(user, post);
         if (existingLike.isPresent()) {
             likeRepository.delete(existingLike.get());
+            // Decrease like count
+            post.setLikesCount(Math.max(0L, post.getLikesCount() - 1));
+            postRepository.save(post);
             return false; // Unliked
         } else {
             Like like = new Like(user, post);
             likeRepository.save(like);
+            // Increase like count
+            post.setLikesCount(post.getLikesCount() + 1);
+            postRepository.save(post);
             return true; // Liked
         }
     }
@@ -493,8 +499,8 @@ public class PostService {
             response.setTags(tagResponses);
         }
         
-        // Set counts
-        response.setLikesCount(post.getLikes() != null ? post.getLikes().size() : 0);
+        // Set counts - use the stored count for better performance
+        response.setLikesCount(post.getLikesCount() != null ? post.getLikesCount().intValue() : 0);
         response.setCommentsCount(post.getComments() != null ? post.getComments().size() : 0);
         
         // Check if current user liked this post

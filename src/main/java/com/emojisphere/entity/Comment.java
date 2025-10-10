@@ -37,6 +37,9 @@ public class Comment {
     @Column(name = "parent_comment_id")
     private Long parentCommentId;
 
+    @Column(name = "likes_count", nullable = false)
+    private Long likesCount = 0L;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

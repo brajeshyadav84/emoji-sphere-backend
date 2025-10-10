@@ -18,7 +18,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -207,9 +209,15 @@ public class PostController {
 
     @PostMapping("/{postId}/like")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> toggleLike(@PathVariable Long postId, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> toggleLike(@PathVariable Long postId, Authentication authentication) {
         String userMobile = authentication.getName();
         boolean liked = postService.toggleLike(postId, userMobile);
-        return ResponseEntity.ok().body(liked ? "liked" : "unliked");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", liked);
+        response.put("status", liked ? "liked" : "unliked");
+        response.put("message", liked ? "Post liked successfully" : "Post unliked successfully");
+        
+        return ResponseEntity.ok(response);
     }
 }

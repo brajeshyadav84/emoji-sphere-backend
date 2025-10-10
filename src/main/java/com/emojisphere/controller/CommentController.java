@@ -14,6 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -83,11 +86,17 @@ public class CommentController {
 
     @PostMapping("/comments/{commentId}/like")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> toggleCommentLike(
+    public ResponseEntity<Map<String, Object>> toggleCommentLike(
             @PathVariable Long commentId,
             Authentication authentication) {
         
         boolean liked = commentService.toggleCommentLike(commentId, authentication.getName());
-        return ResponseEntity.ok().body(liked ? "liked" : "unliked");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", liked);
+        response.put("status", liked ? "liked" : "unliked");
+        response.put("message", liked ? "Comment liked successfully" : "Comment unliked successfully");
+        
+        return ResponseEntity.ok(response);
     }
 }

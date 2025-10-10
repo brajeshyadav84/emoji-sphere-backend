@@ -112,11 +112,17 @@ public class CommentService {
         return likeRepository.findByUserAndComment(user, comment)
                 .map(like -> {
                     likeRepository.delete(like);
+                    // Decrease like count
+                    comment.setLikesCount(Math.max(0L, comment.getLikesCount() - 1));
+                    commentRepository.save(comment);
                     return false; // unliked
                 })
                 .orElseGet(() -> {
                     com.emojisphere.entity.Like like = new com.emojisphere.entity.Like(user, comment);
                     likeRepository.save(like);
+                    // Increase like count
+                    comment.setLikesCount(comment.getLikesCount() + 1);
+                    commentRepository.save(comment);
                     return true; // liked
                 });
     }
@@ -146,9 +152,8 @@ public class CommentService {
             response.setUser(userResponse);
         }
 
-        // Set likes count
-        Long likesCount = likeRepository.countByComment(comment);
-        response.setLikesCount(likesCount.intValue());
+        // Set likes count - use the stored count for better performance
+        response.setLikesCount(comment.getLikesCount() != null ? comment.getLikesCount().intValue() : 0);
 
         // Check if current user liked this comment
         if (currentUserMobile != null) {
