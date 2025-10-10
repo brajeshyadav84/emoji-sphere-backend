@@ -35,4 +35,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     
     @Query("SELECT p FROM Post p WHERE p.isPublic = true ORDER BY p.createdAt DESC")
     Page<Post> findRecentPosts(Pageable pageable);
+    
+    @Query(value = "CALL sp_get_posts_with_details_json(:offset, :limit)", nativeQuery = true)
+    List<Object[]> getPostsWithDetailsJson(@Param("offset") int offset, @Param("limit") int limit);
 }

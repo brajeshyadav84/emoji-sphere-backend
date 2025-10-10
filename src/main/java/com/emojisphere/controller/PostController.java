@@ -3,10 +3,13 @@ package com.emojisphere.controller;
 import com.emojisphere.dto.CreatePostRequest;
 import com.emojisphere.dto.PostRequest;
 import com.emojisphere.dto.PostResponse;
+import com.emojisphere.dto.PostWithDetailsResponse;
+import com.emojisphere.dto.UserResponse;
 import com.emojisphere.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,7 +34,25 @@ public class PostController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "false") boolean useStoredProcedure,
             Authentication authentication) {
+        
+        // If useStoredProcedure is true, redirect to the stored procedure endpoint
+        if (useStoredProcedure) {
+            Page<PostWithDetailsResponse> detailedPosts = postService.getPostsWithDetails(
+                PageRequest.of(page, size)
+            );
+            
+            // Convert PostWithDetailsResponse to PostResponse for compatibility
+            List<PostResponse> posts = detailedPosts.getContent().stream()
+                .map(this::convertDetailedToSimplePost)
+                .collect(java.util.stream.Collectors.toList());
+            
+            Page<PostResponse> result = new PageImpl<>(posts, 
+                PageRequest.of(page, size), detailedPosts.getTotalElements());
+            
+            return ResponseEntity.ok(result);
+        }
         
         Sort sort = sortDir.equalsIgnoreCase("desc") ? 
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
@@ -39,6 +60,55 @@ public class PostController {
         
         String currentMobile = authentication != null ? authentication.getName() : null;
         Page<PostResponse> posts = postService.getAllPublicPosts(pageable, currentMobile);
+        
+        return ResponseEntity.ok(posts);
+    }
+    
+    /**
+     * Convert PostWithDetailsResponse to PostResponse for backward compatibility
+     */
+    private PostResponse convertDetailedToSimplePost(PostWithDetailsResponse detailed) {
+        PostResponse simple = new PostResponse();
+        simple.setId(detailed.getPostId());
+        simple.setContent(detailed.getContent());
+        simple.setImageUrl(detailed.getMediaUrl());
+        simple.setCreatedAt(detailed.getCreatedAt());
+        simple.setUpdatedAt(detailed.getUpdatedAt());
+        simple.setLikesCount(detailed.getLikeCount());
+        simple.setCommentsCount(detailed.getCommentCount());
+        simple.setIsPublic(true); // Since stored procedure only returns public posts
+        
+        // Create a basic UserResponse from available data
+        UserResponse author = new UserResponse();
+        author.setId(String.valueOf(detailed.getUserId()));
+        author.setFullName(detailed.getUserName());
+        author.setGender(detailed.getGender());
+        author.setCountry(detailed.getCountry());
+        simple.setAuthor(author);
+        
+        // Set default values for fields not available in stored procedure
+        simple.setIsLikedByCurrentUser(false);
+        simple.setHasMoreComments(detailed.getComments().size() > 3);
+        
+        return simple;
+    }
+
+    /**
+     * Get posts with complete details using optimized stored procedure
+     * This endpoint uses a MySQL stored procedure to fetch posts with all comments, replies, and counts in a single query
+     */
+    @GetMapping("/with-details")
+    public ResponseEntity<Page<PostWithDetailsResponse>> getPostsWithDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        // Note: The stored procedure already handles sorting by created_at DESC
+        // For now, we'll ignore sortBy and sortDir parameters as the stored procedure has fixed sorting
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<PostWithDetailsResponse> posts = postService.getPostsWithDetails(pageable);
         
         return ResponseEntity.ok(posts);
     }
