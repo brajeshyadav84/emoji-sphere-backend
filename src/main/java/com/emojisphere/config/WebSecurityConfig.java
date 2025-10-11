@@ -32,10 +32,8 @@ public class WebSecurityConfig {
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
 
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter();
-    }
+    @Autowired
+    private AuthTokenFilter authTokenFilter;
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -63,16 +61,20 @@ public class WebSecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/posts/**").permitAll()
+                .requestMatchers("/api/posts/**").permitAll()
                 .requestMatchers("/categories/**").permitAll()
                 .requestMatchers("/comments/**").permitAll()
                 .requestMatchers("/posts/*/comments/**").permitAll()
                 .requestMatchers("/zoom-signature").permitAll()
                 .requestMatchers("/api/groups/**").permitAll()
+                .requestMatchers("/api/user/**").authenticated()
+                .requestMatchers("/api/friendships/**").authenticated()
                 .anyRequest().authenticated()
             );
         http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

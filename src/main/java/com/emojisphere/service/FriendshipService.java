@@ -1,5 +1,6 @@
 package com.emojisphere.service;
 
+import com.emojisphere.dto.friendship.FriendRequestResult;
 import com.emojisphere.dto.friendship.FriendshipResponse;
 import com.emojisphere.entity.Friendship;
 import com.emojisphere.entity.Friendship.FriendshipStatus;
@@ -28,48 +29,17 @@ public class FriendshipService {
     private UserRepository userRepository;
 
     public FriendshipResponse sendFriendRequest(Long requesterId, Long targetUserId) {
-        // Validate users exist and are active
-        User requester = userRepository.findById(requesterId)
-                .orElseThrow(() -> new RuntimeException("Requester user not found"));
+        // Use stored procedure to send friend request
+        FriendRequestResult result = friendshipRepository.sendFriendRequestUsingProcedure(requesterId, targetUserId);
         
-        User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new RuntimeException("Target user not found"));
-
-        if (!requester.getIsActive()) {
-            throw new RuntimeException("Requester account is not active");
+        if (!result.isSuccess()) {
+            throw new RuntimeException(result.getResult());
         }
-
-        if (!target.getIsActive()) {
-            throw new RuntimeException("Target user account is not active");
-        }
-
-        // Cannot send friend request to yourself
-        if (requesterId.equals(targetUserId)) {
-            throw new RuntimeException("Cannot send friend request to yourself");
-        }
-
-        // Check if friendship already exists
-        Optional<Friendship> existingFriendship = friendshipRepository
-                .findFriendshipBetweenUsers(requesterId, targetUserId);
         
-        if (existingFriendship.isPresent()) {
-            Friendship friendship = existingFriendship.get();
-            switch (friendship.getStatus()) {
-                case PENDING:
-                    throw new RuntimeException("Friend request already sent");
-                case ACCEPTED:
-                    throw new RuntimeException("Users are already friends");
-                case DECLINED:
-                    throw new RuntimeException("Friend request was previously declined");
-                case BLOCKED:
-                    throw new RuntimeException("Cannot send friend request - blocked");
-            }
-        }
-
-        // Create new friendship request with ordered user IDs
-        Friendship friendship = Friendship.createOrderedFriendship(requesterId, targetUserId, requesterId);
-        friendship = friendshipRepository.save(friendship);
-
+        // Retrieve the created friendship
+        Friendship friendship = friendshipRepository.findById(result.getFriendshipId())
+                .orElseThrow(() -> new RuntimeException("Failed to retrieve created friendship"));
+        
         return convertToFriendshipResponse(friendship, requesterId);
     }
 
@@ -188,6 +158,16 @@ public class FriendshipService {
 
     public Long getPendingRequestsCount(Long userId) {
         return friendshipRepository.countPendingRequestsByUser(userId);
+    }
+
+    public FriendshipResponse getFriendshipStatus(Long currentUserId, Long targetUserId) {
+        Optional<Friendship> friendship = friendshipRepository.findFriendshipBetweenUsers(currentUserId, targetUserId);
+        
+        if (friendship.isPresent()) {
+            return convertToFriendshipResponse(friendship.get(), currentUserId);
+        }
+        
+        return null; // No friendship exists
     }
 
     private FriendshipResponse convertToFriendshipResponse(Friendship friendship, Long currentUserId) {

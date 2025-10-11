@@ -434,6 +434,29 @@ public class PostService {
         return posts.map(post -> convertToResponse(post, currentMobile));
     }
 
+    public Page<PostResponse> getPostsByUserId(Long userId, Pageable pageable, String currentMobile) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Page<Post> posts;
+        
+        // If current user is authenticated, check if they are the same user
+        User currentUser = null;
+        if (currentMobile != null) {
+            currentUser = userRepository.findByMobileNumber(currentMobile).orElse(null);
+        }
+        
+        if (currentUser != null && currentUser.getId().equals(userId)) {
+            // Show all posts for the owner
+            posts = postRepository.findByUser(user, pageable);
+        } else {
+            // Show only public posts for others
+            posts = postRepository.findByUserAndIsPublicTrue(user, pageable);
+        }
+
+        return posts.map(post -> convertToResponse(post, currentMobile));
+    }
+
     public Page<PostResponse> searchPosts(String keyword, Pageable pageable, String currentMobile) {
         Page<Post> posts = postRepository.searchPublicPosts(keyword, pageable);
         return posts.map(post -> convertToResponse(post, currentMobile));
@@ -499,9 +522,11 @@ public class PostService {
             response.setTags(tagResponses);
         }
         
-        // Set counts - use the stored count for better performance
+        // Set counts - use the stored count for likes and calculate comments count from repository
         response.setLikesCount(post.getLikesCount() != null ? post.getLikesCount().intValue() : 0);
-        response.setCommentsCount(post.getComments() != null ? post.getComments().size() : 0);
+        // Use repository to count comments instead of collection size to avoid lazy loading issues
+        Long commentsCount = commentRepository.countByPost(post);
+        response.setCommentsCount(commentsCount != null ? commentsCount.intValue() : 0);
         
         // Check if current user liked this post
         if (currentMobile != null) {

@@ -4,12 +4,15 @@ import com.emojisphere.dto.MessageResponse;
 import com.emojisphere.dto.friendship.FriendRequestDto;
 import com.emojisphere.dto.friendship.FriendResponseDto;
 import com.emojisphere.dto.friendship.FriendshipResponse;
+import com.emojisphere.entity.User;
+import com.emojisphere.repository.UserRepository;
 import com.emojisphere.service.FriendshipService;
 import com.emojisphere.service.UserDetailsServiceImpl;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -19,17 +22,35 @@ import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/friendships")
+@RequestMapping("/friendships")
 public class FriendshipController {
 
     @Autowired
     private FriendshipService friendshipService;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/send-request")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
     public ResponseEntity<?> sendFriendRequest(@Valid @RequestBody FriendRequestDto request) {
         try {
             Long currentUserId = getCurrentUserId();
             FriendshipResponse response = friendshipService.sendFriendRequest(currentUserId, request.getTargetUserId());
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/send-request-by-id/{targetUserId}")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<?> sendFriendRequestById(@PathVariable Long targetUserId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            FriendshipResponse response = friendshipService.sendFriendRequest(currentUserId, targetUserId);
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -191,9 +212,22 @@ public class FriendshipController {
         try {
             Long currentUserId = getCurrentUserId();
             
+            // Get detailed friendship information
+            FriendshipResponse friendship = friendshipService.getFriendshipStatus(currentUserId, userId);
+            
             Map<String, Object> status = new HashMap<>();
             status.put("areFriends", friendshipService.areFriends(currentUserId, userId));
             status.put("friendshipExists", friendshipService.friendshipExists(currentUserId, userId));
+            
+            if (friendship != null) {
+                Map<String, Object> friendshipDetails = new HashMap<>();
+                friendshipDetails.put("id", friendship.getId());
+                friendshipDetails.put("status", friendship.getStatus());
+                friendshipDetails.put("canRespond", friendship.isCanRespond());
+                friendshipDetails.put("isSentByCurrentUser", friendship.isSentByCurrentUser());
+                
+                status.put("friendship", friendshipDetails);
+            }
             
             return ResponseEntity.ok(status);
         } catch (RuntimeException e) {
@@ -222,8 +256,13 @@ public class FriendshipController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
         
-        // Convert mobile number to user ID by looking up in database
-        // This is a simplified approach - in a real app, you might want to store user ID in JWT
-        return Long.parseLong(userDetails.getId());
+        // Get the mobile number from the principal
+        String mobile = userDetails.getId(); // This is actually the mobile number
+        
+        // Look up the user by mobile number to get the actual user ID
+        User user = userRepository.findByMobileNumber(mobile)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        return user.getId();
     }
 }

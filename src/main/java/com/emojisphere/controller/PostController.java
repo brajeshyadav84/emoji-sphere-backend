@@ -168,6 +168,20 @@ public class PostController {
         return ResponseEntity.ok(posts);
     }
 
+    @GetMapping("/user-id/{userId}")
+    public ResponseEntity<Page<PostResponse>> getPostsByUserId(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        String currentMobile = authentication != null ? authentication.getName() : null;
+        Page<PostResponse> posts = postService.getPostsByUserId(userId, pageable, currentMobile);
+        
+        return ResponseEntity.ok(posts);
+    }
+
     @GetMapping("/search")
     public ResponseEntity<Page<PostResponse>> searchPosts(
             @RequestParam String keyword,

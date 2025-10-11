@@ -19,11 +19,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Component
 public class AuthTokenFilter extends OncePerRequestFilter {
     
     @Autowired
@@ -39,18 +41,26 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
+            logger.debug("JWT Token: {}", jwt != null ? jwt.substring(0, Math.min(jwt.length(), 20)) + "..." : "null");
+            
             if (jwt != null && validateJwtToken(jwt)) {
                 String mobile = getMobileFromJwtToken(jwt);
+                logger.debug("Mobile from JWT: {}", mobile);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(mobile);
+                logger.debug("User loaded: {}, Authorities: {}", userDetails.getUsername(), userDetails.getAuthorities());
+                
                 UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                logger.debug("Authentication set successfully");
+            } else {
+                logger.debug("JWT validation failed or JWT is null");
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication: {}", e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);
@@ -58,9 +68,18 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
+        
+        // Try lowercase if uppercase doesn't work
+        if (!StringUtils.hasText(headerAuth)) {
+            headerAuth = request.getHeader("authorization");
+        }
+        
+        logger.debug("Authorization header: {}", headerAuth != null ? headerAuth.substring(0, Math.min(headerAuth.length(), 20)) + "..." : "null");
 
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
+            String token = headerAuth.substring(7);
+            logger.debug("Extracted token: {}", token.substring(0, Math.min(token.length(), 20)) + "...");
+            return token;
         }
 
         return null;
@@ -87,6 +106,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                     .setSigningKey(key)
                     .build()
                     .parseClaimsJws(authToken);
+            logger.debug("JWT token is valid");
             return true;
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
@@ -94,6 +114,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             logger.error("JWT token is unsupported: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.error("JWT claims string is empty: {}", e.getMessage());
+        } catch (Exception e) {
+            logger.error("JWT token validation error: {}", e.getMessage());
         }
 
         return false;
