@@ -13,6 +13,7 @@ public class GroupResponse {
     
     private Long id;
     private String name;
+    private String emoji;
     private String description;
     private String privacy; // Changed from enum to String for consistency
     private Boolean isActive;

@@ -1,6 +1,10 @@
 package com.emojisphere.controller;
 
 import com.emojisphere.dto.group.*;
+import com.emojisphere.entity.Group;
+import com.emojisphere.entity.User;
+import com.emojisphere.repository.GroupRepository;
+import com.emojisphere.repository.UserRepository;
 import com.emojisphere.service.GroupMemberService;
 import com.emojisphere.service.GroupService;
 import jakarta.validation.Valid;
@@ -22,6 +26,8 @@ public class GroupController {
     
     private final GroupService groupService;
     private final GroupMemberService groupMemberService;
+    private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
     
     // Group Management APIs
     
@@ -29,6 +35,15 @@ public class GroupController {
     public ResponseEntity<?> createGroup(@Valid @RequestBody GroupCreateRequest request, Authentication authentication) {
         try {
             String userMobile = authentication.getName();
+            
+            // Only ADMIN role users can create groups
+            if (!hasAdminRole(userMobile)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "Only administrators can create groups"
+                ));
+            }
+            
             GroupResponse response = groupService.createGroup(request, userMobile);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "success", true,
@@ -66,6 +81,15 @@ public class GroupController {
                                        Authentication authentication) {
         try {
             String userMobile = authentication.getName();
+            
+            // Only ADMIN role users or group creators can update groups
+            if (!hasAdminRoleOrGroupCreatorPermission(userMobile, groupId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "Only administrators or group creators can update groups"
+                ));
+            }
+            
             GroupResponse response = groupService.updateGroup(groupId, request, userMobile);
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -84,6 +108,15 @@ public class GroupController {
     public ResponseEntity<?> deleteGroup(@PathVariable Long groupId, Authentication authentication) {
         try {
             String userMobile = authentication.getName();
+            
+            // Only ADMIN role users or group creators can delete groups
+            if (!hasAdminRoleOrGroupCreatorPermission(userMobile, groupId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "Only administrators or group creators can delete groups"
+                ));
+            }
+            
             groupService.deleteGroup(groupId, userMobile);
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -396,6 +429,51 @@ public class GroupController {
                 "success", false,
                 "message", e.getMessage()
             ));
+        }
+    }
+    
+    /**
+     * Check if user has admin role
+     */
+    private boolean hasAdminRole(String userMobile) {
+        try {
+            User user = userRepository.findByMobileNumber(userMobile).orElse(null);
+            if (user == null) {
+                return false;
+            }
+            
+            return "ADMIN".equals(user.getRole());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Check if user has admin role or is group creator
+     */
+    private boolean hasAdminRoleOrGroupCreatorPermission(String userMobile, Long groupId) {
+        try {
+            User user = userRepository.findByMobileNumber(userMobile).orElse(null);
+            if (user == null) {
+                return false;
+            }
+            
+            // Check if user has admin role
+            if ("ADMIN".equals(user.getRole())) {
+                return true;
+            }
+            
+            // Check if user is the group creator
+            if (groupId != null) {
+                Group group = groupRepository.findById(groupId).orElse(null);
+                if (group != null && group.getCreatedBy().equals(userMobile)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

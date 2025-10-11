@@ -16,6 +16,9 @@ public class GroupCreateRequest {
     @Size(min = 3, max = 100, message = "Group name must be between 3 and 100 characters")
     private String name;
     
+    @Size(max = 10, message = "Emoji cannot exceed 10 characters")
+    private String emoji;
+    
     @Size(max = 500, message = "Description cannot exceed 500 characters")
     private String description;
     

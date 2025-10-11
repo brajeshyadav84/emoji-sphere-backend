@@ -41,6 +41,10 @@ public class Group {
     @Column(name = "description")
     private String description;
 
+    @Size(max = 10)
+    @Column(name = "emoji")
+    private String emoji;
+
     @Size(max = 20)
     @Column(name = "privacy")
     private String privacy = "PUBLIC";
@@ -59,9 +63,9 @@ public class Group {
     @JoinColumn(name = "created_by", referencedColumnName = "mobile_number", insertable = false, updatable = false)
     private User creator;
 
-    public Group(String name, String email, String description, String privacy, String createdBy) {
+    public Group(String name, String emoji, String description, String privacy, String createdBy) {
         this.name = name;
-        this.email = email;
+        this.emoji = emoji;
         this.description = description;
         this.privacy = privacy;
         this.createdBy = createdBy;

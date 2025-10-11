@@ -43,6 +43,7 @@ public class GroupService {
         // Create group
         Group group = new Group();
         group.setName(request.getName());
+        group.setEmoji(request.getEmoji());
         group.setDescription(request.getDescription());
         group.setPrivacy(request.getPrivacy()); // Now expects String
         group.setCreatedBy(creator.getMobileNumber()); // Now expects String (mobile number)
@@ -77,6 +78,10 @@ public class GroupService {
                 throw new RuntimeException("Group with this name already exists");
             }
             group.setName(request.getName());
+        }
+        
+        if (request.getEmoji() != null) {
+            group.setEmoji(request.getEmoji());
         }
         
         if (request.getDescription() != null) {
