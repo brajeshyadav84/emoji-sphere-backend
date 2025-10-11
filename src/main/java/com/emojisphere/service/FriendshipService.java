@@ -97,20 +97,30 @@ public class FriendshipService {
         return friendships.map(friendship -> convertToFriendshipResponse(friendship, userId));
     }
 
-    public void removeFriend(Long userId, Long friendId) {
-        // Check if they are friends
+    public String removeFriend(Long userId, Long friendId) {
+        // Check if any friendship relationship exists
         Optional<Friendship> friendship = friendshipRepository.findFriendshipBetweenUsers(userId, friendId);
         
         if (friendship.isEmpty()) {
-            throw new RuntimeException("Friendship not found");
+            // No friendship exists, nothing to remove - return success message
+            return "No friendship relationship found";
         }
 
-        if (!friendship.get().isAccepted()) {
-            throw new RuntimeException("Users are not friends");
+        Friendship existingFriendship = friendship.get();
+        
+        if (existingFriendship.isAccepted()) {
+            // They are friends - remove the friendship
+            friendshipRepository.delete(existingFriendship);
+            return "Friend removed successfully";
+        } else if (existingFriendship.isPending()) {
+            // There's a pending request - cancel it to allow fresh friend request
+            friendshipRepository.delete(existingFriendship);
+            return "Friend request cancelled successfully";
+        } else {
+            // Other status (blocked, rejected, etc.) - remove to reset state
+            friendshipRepository.delete(existingFriendship);
+            return "Friendship relationship reset successfully";
         }
-
-        // Delete the friendship
-        friendshipRepository.delete(friendship.get());
     }
 
     public void blockUser(Long userId, Long userToBlockId) {

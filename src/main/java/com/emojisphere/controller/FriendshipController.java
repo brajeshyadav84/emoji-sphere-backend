@@ -172,9 +172,9 @@ public class FriendshipController {
     public ResponseEntity<?> removeFriend(@PathVariable Long friendId) {
         try {
             Long currentUserId = getCurrentUserId();
-            friendshipService.removeFriend(currentUserId, friendId);
+            String message = friendshipService.removeFriend(currentUserId, friendId);
             
-            return ResponseEntity.ok(new MessageResponse("Friend removed successfully"));
+            return ResponseEntity.ok(new MessageResponse(message));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: " + e.getMessage()));
