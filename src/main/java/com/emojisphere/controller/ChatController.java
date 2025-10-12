@@ -163,7 +163,7 @@ public class ChatController {
             // Send an initial message to create/get conversation
             SendMessageRequest initialMessage = new SendMessageRequest();
             initialMessage.setReceiverId(friendId);
-            initialMessage.setMessageText("👋 Hi there!");
+            // initialMessage.setMessageText("👋 Hi there!");
             initialMessage.setMessageType("EMOJI");
             
             ChatMessageResponse response = chatService.sendMessage(userId, initialMessage);
