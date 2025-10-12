@@ -348,11 +348,11 @@ const sendOtp = async (mobile) => {
 };
 
 // Step 2: Verify OTP
-const verifyOtp = async (mobile, otp) => {
+const verifyOtp = async (email, otp) => {
   const response = await fetch('/api/auth/verify-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mobile, otp })
+    body: JSON.stringify({ email, otp })
   });
   return response.json();
 };

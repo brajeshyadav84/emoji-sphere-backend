@@ -20,8 +20,11 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.util.Date;
+import java.util.Optional;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -40,11 +43,17 @@ public class AuthController {
     @Autowired
     OtpService otpService;
 
+    @Autowired
+    private JavaMailSender mailSender;
+
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration}")
     private int jwtExpiration;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody OtpRequest otpRequest) {
@@ -68,6 +77,54 @@ public class AuthController {
         } else {
             return ResponseEntity.badRequest()
                     .body(new ValidationResponse(false, "Invalid or expired OTP"));
+        }
+    }
+
+    @PostMapping("/send-email-otp")
+    public ResponseEntity<?> sendEmailOtp(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
+        try {
+            // Check if email already exists and is verified
+            Optional<User> existingUser = userRepository.findByEmail(emailOtpRequest.getEmail());
+            if (existingUser.isPresent() && existingUser.get().getIsVerified()) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Error: This email is already verified!"));
+            }
+            
+            String otp = otpService.generateAndSaveEmailOtp(emailOtpRequest.getEmail());
+            otpService.sendEmailOtp(emailOtpRequest.getEmail(), otp);
+            
+            return ResponseEntity.ok(new MessageResponse("OTP sent successfully to " + emailOtpRequest.getEmail()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: Failed to send email OTP. " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-email-otp")
+    public ResponseEntity<?> verifyEmailOtp(@Valid @RequestBody EmailOtpVerifyRequest emailOtpVerifyRequest) {
+        try {
+            boolean isValid = otpService.verifyEmailOtp(emailOtpVerifyRequest.getEmail(), emailOtpVerifyRequest.getOtp());
+            
+            if (isValid) {
+                // Update user verification status
+                Optional<User> userOpt = userRepository.findByEmail(emailOtpVerifyRequest.getEmail());
+                if (userOpt.isPresent()) {
+                    User user = userOpt.get();
+                    user.setIsVerified(true);
+                    userRepository.save(user);
+                    
+                    return ResponseEntity.ok(new ValidationResponse(true, "Email verified successfully! Your account is now active."));
+                } else {
+                    return ResponseEntity.badRequest()
+                            .body(new ValidationResponse(false, "User not found with this email address"));
+                }
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(new ValidationResponse(false, "Invalid or expired OTP"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ValidationResponse(false, "Error verifying OTP: " + e.getMessage()));
         }
     }
 
@@ -131,10 +188,10 @@ public class AuthController {
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
-        // Verify OTP before registration
-        if (!otpService.isOtpVerified(signUpRequest.getMobile())) {
+        // Email is required for registration
+        if (signUpRequest.getEmail() == null || signUpRequest.getEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Please verify your mobile number with OTP first!"));
+                    .body(new MessageResponse("Error: Email is required for registration!"));
         }
 
         // Create new user's account with new constructor
@@ -149,7 +206,7 @@ public class AuthController {
         );
 
         user.setEmail(signUpRequest.getEmail());
-        user.setIsVerified(true); // Set as verified since OTP was verified
+        user.setIsVerified(false); // Will be verified after OTP verification
         user.setRole("USER"); // Default role
 
         userRepository.save(user);
@@ -158,18 +215,18 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@Valid @RequestBody OtpRequest otpRequest) {
-        // Check if user exists
-        if (!userRepository.existsByMobileNumber(otpRequest.getMobile())) {
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
+        // Check if user exists by email
+        if (!userRepository.existsByEmail(emailOtpRequest.getEmail())) {
             return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: No account found with this mobile number!"));
+                    .body(new MessageResponse("Error: No account found with this email address!"));
         }
 
         try {
-            String otp = otpService.generateAndSaveOtp(otpRequest.getMobile());
-            otpService.sendOtp(otpRequest.getMobile(), otp);
+            String otp = otpService.generateAndSaveEmailOtp(emailOtpRequest.getEmail());
+            otpService.sendEmailOtp(emailOtpRequest.getEmail(), otp);
             
-            return ResponseEntity.ok(new MessageResponse("Password reset OTP sent successfully to " + otpRequest.getMobile()));
+            return ResponseEntity.ok(new MessageResponse("Password reset OTP sent successfully to " + emailOtpRequest.getEmail()));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: Failed to send password reset OTP. " + e.getMessage()));
@@ -177,9 +234,9 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody EmailResetPasswordRequest resetPasswordRequest) {
         // Verify OTP first
-        if (!otpService.verifyOtp(resetPasswordRequest.getMobile(), resetPasswordRequest.getOtp())) {
+        if (!otpService.verifyEmailOtp(resetPasswordRequest.getEmail(), resetPasswordRequest.getOtp())) {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: Invalid or expired OTP"));
         }
@@ -190,8 +247,8 @@ public class AuthController {
                     .body(new MessageResponse("Error: Password and confirm password do not match!"));
         }
 
-        // Find user and update password
-        User user = userRepository.findByMobileNumber(resetPasswordRequest.getMobile())
+        // Find user by email and update password
+        User user = userRepository.findByEmail(resetPasswordRequest.getEmail())
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setPasswordHash(encoder.encode(resetPasswordRequest.getNewPassword()));

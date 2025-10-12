@@ -22,9 +22,11 @@ public class OtpVerification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Column(name = "mobile", nullable = false)
+    @Column(name = "mobile")
     private String mobile;
+
+    @Column(name = "email")
+    private String email;
 
     @NotBlank
     @Column(name = "otp", nullable = false)
@@ -42,6 +44,13 @@ public class OtpVerification {
 
     public OtpVerification(String mobile, String otp, LocalDateTime expiresAt) {
         this.mobile = mobile;
+        this.otp = otp;
+        this.expiresAt = expiresAt;
+        this.verified = false;
+    }
+
+    public OtpVerification(String email, String otp, LocalDateTime expiresAt, boolean isEmail) {
+        this.email = email;
         this.otp = otp;
         this.expiresAt = expiresAt;
         this.verified = false;

@@ -33,12 +33,14 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create OTP verifications table
 CREATE TABLE IF NOT EXISTS otp_verifications (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    mobile VARCHAR(20) NOT NULL,
+    mobile VARCHAR(20) NULL,
+    email VARCHAR(255) NULL,
     otp VARCHAR(6) NOT NULL,
     verified BOOLEAN DEFAULT FALSE,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_mobile (mobile),
+    INDEX idx_email (email),
     INDEX idx_expires_at (expires_at)
 );
 
