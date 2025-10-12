@@ -17,7 +17,7 @@ import java.util.Optional;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
@@ -155,6 +155,7 @@ public class UserController {
             response.setSchoolName(user.getSchoolName());
             response.setIsActive(user.getIsActive());
             response.setCreatedAt(user.getCreatedAt());
+            response.setEmail(user.getEmail());
             
             // Don't expose sensitive information like email, mobile, etc. for public profile
             

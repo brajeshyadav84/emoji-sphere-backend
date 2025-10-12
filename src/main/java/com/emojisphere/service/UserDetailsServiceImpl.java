@@ -80,6 +80,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             return email;
         }
 
+        public String getRole() {
+            // Extract role from authorities (remove "ROLE_" prefix)
+            return authorities.stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(authority -> authority.startsWith("ROLE_"))
+                    .map(authority -> authority.substring(5)) // Remove "ROLE_" prefix
+                    .findFirst()
+                    .orElse("USER"); // Default to USER if no role found
+        }
+
         @Override
         public String getUsername() {
             return mobile; // Use mobile as username for Spring Security

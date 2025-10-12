@@ -43,9 +43,9 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long>, F
            "f.requesterId != :userId AND f.status = 'PENDING'")
     Page<Friendship> findPendingRequestsReceivedByUser(@Param("userId") Long userId, Pageable pageable);
 
-    // Get all accepted friendships for a user (friends list)
+    // Get all accepted and pending friendships for a user (friends list)
     @Query("SELECT f FROM Friendship f WHERE " +
-           "(f.user1Id = :userId OR f.user2Id = :userId) AND f.status = 'ACCEPTED'")
+           "(f.user1Id = :userId OR f.user2Id = :userId) AND (f.status = 'ACCEPTED' OR f.status = 'PENDING')")
     Page<Friendship> findAcceptedFriendships(@Param("userId") Long userId, Pageable pageable);
 
     // Get count of friends for a user

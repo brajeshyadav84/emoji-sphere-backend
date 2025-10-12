@@ -167,7 +167,7 @@ public class AuthController {
                 userDetails.getFullName(),
                 userDetails.getMobile(),
                 userDetails.getEmail(),
-                "USER")); // Default role
+                userDetails.getRole())); // Use actual user role
     }
 
     @PostMapping("/signup")
@@ -207,7 +207,18 @@ public class AuthController {
 
         user.setEmail(signUpRequest.getEmail());
         user.setIsVerified(false); // Will be verified after OTP verification
-        user.setRole("USER"); // Default role
+        
+        // Set role based on request, default to USER if not specified
+        String userRole = "USER"; // Default role
+        if (signUpRequest.getRole() != null && !signUpRequest.getRole().isEmpty()) {
+            // Take the first role from the set
+            userRole = signUpRequest.getRole().iterator().next();
+            // Validate role - only allow USER, TEACHER, and ADMIN
+            if (!userRole.equals("USER") && !userRole.equals("TEACHER") && !userRole.equals("ADMIN")) {
+                userRole = "USER"; // Fallback to USER for invalid roles
+            }
+        }
+        user.setRole(userRole);
 
         userRepository.save(user);
 
