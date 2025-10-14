@@ -139,7 +139,7 @@ public class PostService {
             }
             
             List<PostWithDetailsResponse> posts = new ArrayList<>();
-            
+
             for (JsonNode postNode : postsArray) {
                 try {
                     PostWithDetailsResponse post = parsePostFromJson(postNode);
@@ -150,13 +150,16 @@ public class PostService {
                     // Continue with other posts
                 }
             }
-            
+
+            // Sort posts by createdAt descending to guarantee correct order
+            posts.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+
             System.out.println("Successfully parsed " + posts.size() + " posts");
-            
+
             // For simplicity, we'll use the returned list size as total.
             // In a real scenario, you might want to call another stored procedure to get the total count
             long total = posts.size() + offset; // This is an approximation
-            
+
             return new PageImpl<>(posts, pageable, total);
             
         } catch (JsonProcessingException e) {

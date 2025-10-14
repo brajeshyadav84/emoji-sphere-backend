@@ -31,31 +31,31 @@ public class GroupService {
     private final ModelMapper modelMapper;
     
     public GroupResponse createGroup(GroupCreateRequest request, String userMobile) {
-        // Find user
-        User creator = userRepository.findByMobileNumber(userMobile)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        // Check if group name already exists
-        if (groupRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new RuntimeException("Group with this name already exists");
-        }
-        
-        // Create group
-        Group group = new Group();
-        group.setName(request.getName());
-        group.setEmoji(request.getEmoji());
-        group.setDescription(request.getDescription());
-        group.setPrivacy(request.getPrivacy()); // Now expects String
-        group.setCreatedBy(creator.getMobileNumber()); // Now expects String (mobile number)
-        group.setCreatedAt(LocalDateTime.now());
-        
-        Group savedGroup = groupRepository.save(group);
-        
-        // Add creator as admin
-        GroupMember adminMember = new GroupMember(savedGroup.getId(), creator.getMobileNumber(), creator.getAge(), "ADMIN");
-        groupMemberRepository.save(adminMember);
-        
-        return convertToGroupResponse(savedGroup, creator);
+    // Find user
+    User creator = userRepository.findByMobileNumber(userMobile)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+
+    // Check if group name already exists
+    if (groupRepository.existsByNameIgnoreCase(request.getName())) {
+        throw new RuntimeException("Group with this name already exists");
+    }
+
+    // Create group
+    Group group = new Group();
+    group.setName(request.getName());
+    group.setEmoji(request.getEmoji());
+    group.setDescription(request.getDescription());
+    group.setPrivacy(request.getPrivacy());
+    group.setCreatedBy(creator.getId()); // Now expects Long (user id)
+    group.setCreatedAt(LocalDateTime.now());
+
+    Group savedGroup = groupRepository.save(group);
+
+    // Add creator as admin
+    GroupMember adminMember = new GroupMember(savedGroup.getId(), creator.getId(), creator.getAge(), "ADMIN");
+    groupMemberRepository.save(adminMember);
+
+    return convertToGroupResponse(savedGroup, creator);
     }
     
     public GroupResponse updateGroup(Long groupId, GroupUpdateRequest request, String userMobile) {
@@ -66,7 +66,7 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is admin (simplified check)
-        boolean isAdmin = group.getCreatedBy().equals(user.getMobileNumber());
+        boolean isAdmin = group.getCreatedBy().equals(user.getId());
         if (!isAdmin) {
             throw new RuntimeException("Only admins can update group details");
         }
@@ -105,7 +105,7 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is admin (simplified check)
-        boolean isAdmin = group.getCreatedBy().equals(user.getMobileNumber());
+        boolean isAdmin = group.getCreatedBy().equals(user.getId());
         if (!isAdmin) {
             throw new RuntimeException("Only admins can delete groups");
         }
@@ -129,7 +129,7 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         // Find groups where user is a member
-        List<GroupMember> userMemberships = groupMemberRepository.findByUserId(user.getMobileNumber());
+        List<GroupMember> userMemberships = groupMemberRepository.findByUserId(user.getId());
         List<Long> groupIds = userMemberships.stream().map(GroupMember::getGroupId).collect(Collectors.toList());
         
         if (groupIds.isEmpty()) {
@@ -146,7 +146,7 @@ public class GroupService {
         User user = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        List<Group> createdGroups = groupRepository.findByCreatedBy(user.getMobileNumber());
+        List<Group> createdGroups = groupRepository.findByCreatedBy(user.getId());
         return createdGroups.stream()
                 .map(group -> convertToGroupResponse(group, user))
                 .collect(Collectors.toList());
@@ -197,14 +197,14 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is already a member
-        if (groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
+        if (groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId())) {
             throw new RuntimeException("You are already a member of this group");
         }
-        
+
         // Create membership
-        GroupMember member = new GroupMember(group.getId(), user.getMobileNumber(), user.getAge(), "MEMBER");
+        GroupMember member = new GroupMember(group.getId(), user.getId(), user.getAge(), "MEMBER");
         GroupMember savedMember = groupMemberRepository.save(member);
-        
+
         return convertToGroupMemberResponse(savedMember);
     }
     
@@ -216,17 +216,17 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
         // Check if user is member
-        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
+        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId())) {
             throw new RuntimeException("You are not a member of this group");
         }
-        
+
         // Check if user is the creator
-        if (group.getCreatedBy().equals(user.getMobileNumber())) {
+        if (group.getCreatedBy().equals(user.getId())) {
             throw new RuntimeException("Cannot leave group as you are the creator. Delete the group instead.");
         }
-        
+
         // Remove membership
-        groupMemberRepository.deleteByGroupIdAndUserId(group.getId(), user.getMobileNumber());
+        groupMemberRepository.deleteByGroupIdAndUserId(group.getId(), user.getId());
     }
     
     public Map<String, Object> canUserJoinGroup(Long groupId, String userMobile) {
@@ -241,7 +241,7 @@ public class GroupService {
         result.put("groupName", group.getName());
         result.put("privacy", group.getPrivacy());
         
-        if (groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber())) {
+        if (groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId())) {
             result.put("canJoin", false);
             result.put("reason", "You are already a member of this group");
             return result;
@@ -266,18 +266,18 @@ public class GroupService {
         Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
         Page<Group> publicGroups = groupRepository.findByPrivacy("PUBLIC", pageable);
         
-        return publicGroups.getContent().stream()
-                .filter(group -> !groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getMobileNumber()))
-                .map(group -> convertToGroupResponse(group, user))
-                .limit(limit)
-                .collect(Collectors.toList());
+    return publicGroups.getContent().stream()
+        .filter(group -> !groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId()))
+        .map(group -> convertToGroupResponse(group, user))
+        .limit(limit)
+        .collect(Collectors.toList());
     }
     
     private GroupResponse convertToGroupResponse(Group group, User currentUser) {
         GroupResponse response = modelMapper.map(group, GroupResponse.class);
         
         // Set creator info
-        User creator = userRepository.findByMobileNumber(group.getCreatedBy()).orElse(null);
+    User creator = userRepository.findById(group.getCreatedBy()).orElse(null);
         if (creator != null) {
             response.setCreatedById(creator.getMobileNumber());
             response.setCreatedByName(creator.getFullName());
@@ -289,33 +289,39 @@ public class GroupService {
         response.setAdminCount(groupMemberRepository.countByGroupIdAndStatus(group.getId(), "ADMIN"));
         
         // Set user's relationship to group
-        response.setIsUserMember(groupMemberRepository.existsByGroupIdAndUserId(group.getId(), currentUser.getMobileNumber()));
-        response.setIsUserAdmin(group.getCreatedBy().equals(currentUser.getMobileNumber()) || 
-                               groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), currentUser.getMobileNumber(), "ADMIN"));
+    response.setIsUserMember(groupMemberRepository.existsByGroupIdAndUserId(group.getId(), currentUser.getId()));
+    response.setIsUserAdmin(group.getCreatedBy().equals(currentUser.getId()) || 
+                   groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), currentUser.getId(), "ADMIN"));
         
         return response;
     }
     
     private GroupMemberResponse convertToGroupMemberResponse(GroupMember member) {
-        GroupMemberResponse response = modelMapper.map(member, GroupMemberResponse.class);
-        
+        GroupMemberResponse response = new GroupMemberResponse();
+        response.setId(member.getId());
+        response.setStatus(member.getStatus());
+        response.setJoinedAt(member.getJoinedAt());
+        response.setIsActive(true); // or set based on your logic if available
+        // response.setAge(member.getAge());
+        response.setGroupId(member.getGroupId());
+
         // Set user info
-        User user = userRepository.findByMobileNumber(member.getUserId()).orElse(null);
+        User user = userRepository.findById(member.getUserId()).orElse(null);
         if (user != null) {
-            response.setUserId(user.getMobileNumber());
-            response.setFirstName(user.getFullName().split(" ")[0]);
-            response.setLastName(user.getFullName().contains(" ") ? user.getFullName().substring(user.getFullName().indexOf(" ") + 1) : "");
+            response.setUserId(user.getMobileNumber()); // userId as String (mobile number)
             response.setMobileNumber(user.getMobileNumber());
+            response.setFirstName(user.getFullName() != null ? user.getFullName().split(" ")[0] : "");
+            response.setLastName(user.getFullName() != null && user.getFullName().contains(" ") ? user.getFullName().substring(user.getFullName().indexOf(" ") + 1) : "");
             response.setEmail(user.getEmail());
+            // response.setProfilePicture(user.getProfilePicture());
         }
-        
+
         // Set group info
         Group group = groupRepository.findById(member.getGroupId()).orElse(null);
         if (group != null) {
-            response.setGroupId(group.getId());
             response.setGroupName(group.getName());
         }
-        
+
         return response;
     }
 }

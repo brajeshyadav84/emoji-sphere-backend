@@ -18,7 +18,7 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     List<Group> findByNameContainingIgnoreCase(String name);
     
     // Find groups by creator
-    List<Group> findByCreatedBy(String createdBy);
+    List<Group> findByCreatedBy(Long createdBy);
     
     // Find groups by privacy setting
     List<Group> findByPrivacy(String privacy);
@@ -33,5 +33,5 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     boolean existsByNameIgnoreCase(String name);
     
     // Find groups created by user
-    List<Group> findByCreatedByOrderByCreatedAtDesc(String createdBy);
+    List<Group> findByCreatedByOrderByCreatedAtDesc(Long createdBy);
 }

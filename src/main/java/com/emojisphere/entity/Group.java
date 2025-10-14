@@ -50,7 +50,7 @@ public class Group {
     private String privacy = "PUBLIC";
 
     @Column(name = "created_by", nullable = false)
-    private String createdBy;
+    private Long createdBy;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -60,10 +60,10 @@ public class Group {
     private Set<GroupMember> members = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", referencedColumnName = "mobile_number", insertable = false, updatable = false)
+    @JoinColumn(name = "created_by", referencedColumnName = "id", insertable = false, updatable = false)
     private User creator;
 
-    public Group(String name, String emoji, String description, String privacy, String createdBy) {
+    public Group(String name, String emoji, String description, String privacy, Long createdBy) {
         this.name = name;
         this.emoji = emoji;
         this.description = description;

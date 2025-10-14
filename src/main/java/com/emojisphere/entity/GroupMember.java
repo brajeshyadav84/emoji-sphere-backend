@@ -23,7 +23,7 @@ public class GroupMember {
     private Long groupId;
     
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private Long userId;
     
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
@@ -40,11 +40,11 @@ public class GroupMember {
     private Group group;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "mobile_number", insertable = false, updatable = false)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User user;
     
     // Constructor for easier creation
-    public GroupMember(Long groupId, String userId, Integer age, String status) {
+    public GroupMember(Long groupId, Long userId, Integer age, String status) {
         this.groupId = groupId;
         this.userId = userId;
         this.age = age;

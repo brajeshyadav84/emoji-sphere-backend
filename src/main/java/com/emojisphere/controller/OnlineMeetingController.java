@@ -14,7 +14,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 @RestController
 @RequestMapping("/onlinemeeting")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = "*", maxAge = 3600)
+// @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class OnlineMeetingController {
 
     @Value("${zoom.sdk.key}")

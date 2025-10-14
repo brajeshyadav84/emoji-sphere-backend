@@ -84,6 +84,16 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
+
+    @Column(name = "last_seen")
+    private LocalDateTime lastSeen;
+
+    @Size(max = 20)
+    @Column(name = "online_status")
+    private String onlineStatus = "offline";
+
     // Legacy support for existing code
     @Transient
     private Set<Role> roles = new HashSet<>();

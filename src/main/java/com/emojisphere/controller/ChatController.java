@@ -20,7 +20,8 @@ import java.util.Map;
 @RequestMapping("/chat")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = "*", maxAge = 3600)
+// @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class ChatController {
 
     private final ChatService chatService;

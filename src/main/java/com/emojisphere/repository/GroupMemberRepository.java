@@ -20,10 +20,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     List<GroupMember> findByGroupId(Long groupId);
     
     // Find members by user ID
-    List<GroupMember> findByUserId(String userId);
+    List<GroupMember> findByUserId(Long userId);
     
     // Find member by group and user
-    Optional<GroupMember> findByGroupIdAndUserId(Long groupId, String userId);
+    Optional<GroupMember> findByGroupIdAndUserId(Long groupId, Long userId);
     
     // Find members by status
     List<GroupMember> findByGroupIdAndStatus(Long groupId, String status);
@@ -32,10 +32,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     Page<GroupMember> findByGroupId(Long groupId, Pageable pageable);
     
     // Check if user is member of group
-    boolean existsByGroupIdAndUserId(Long groupId, String userId);
+    boolean existsByGroupIdAndUserId(Long groupId, Long userId);
     
     // Check if user has specific status in group
-    boolean existsByGroupIdAndUserIdAndStatus(Long groupId, String userId, String status);
+    boolean existsByGroupIdAndUserIdAndStatus(Long groupId, Long userId, String status);
     
     // Count members in group
     long countByGroupId(Long groupId);
@@ -46,5 +46,5 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     // Remove member (hard delete)
     @Modifying
     @Transactional
-    void deleteByGroupIdAndUserId(Long groupId, String userId);
+    void deleteByGroupIdAndUserId(Long groupId, Long userId);
 }
