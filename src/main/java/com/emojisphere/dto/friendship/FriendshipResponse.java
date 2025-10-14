@@ -46,5 +46,10 @@ public class FriendshipResponse {
         private Integer age;
         private String gender;
         private Boolean isActive;
+
+        // Online status fields
+        private Boolean isOnline;
+        private LocalDateTime lastSeen;
+        private String onlineStatus;
     }
 }

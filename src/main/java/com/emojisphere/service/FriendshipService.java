@@ -231,16 +231,20 @@ public class FriendshipService {
     }
 
     private FriendshipResponse.UserBasicInfo convertToUserBasicInfo(User user) {
-        return new FriendshipResponse.UserBasicInfo(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getMobileNumber(),
-                user.getCountry(),
-                user.getSchoolName(),
-                user.getAge(),
-                user.getGender(),
-                user.getIsActive()
-        );
+        FriendshipResponse.UserBasicInfo info = new FriendshipResponse.UserBasicInfo();
+        info.setId(user.getId());
+        info.setFullName(user.getFullName());
+        info.setEmail(user.getEmail());
+        info.setMobileNumber(user.getMobileNumber());
+        info.setCountry(user.getCountry());
+        info.setSchoolName(user.getSchoolName());
+        info.setAge(user.getAge());
+        info.setGender(user.getGender());
+        info.setIsActive(user.getIsActive());
+        // Set online status fields
+        info.setIsOnline(user.getIsOnline());
+        info.setLastSeen(user.getLastSeen());
+        info.setOnlineStatus(user.getOnlineStatus());
+        return info;
     }
 }
