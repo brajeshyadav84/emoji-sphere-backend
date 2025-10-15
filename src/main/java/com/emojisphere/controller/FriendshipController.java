@@ -257,10 +257,10 @@ public class FriendshipController {
         UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
         
         // Get the mobile number from the principal
-        String mobile = userDetails.getId(); // This is actually the mobile number
+        Long mobile = userDetails.getId(); // This is actually the mobile number
         
         // Look up the user by mobile number to get the actual user ID
-        User user = userRepository.findByMobileNumber(mobile)
+        User user = userRepository.findById(mobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         return user.getId();

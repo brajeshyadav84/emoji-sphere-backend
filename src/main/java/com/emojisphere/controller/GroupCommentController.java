@@ -2,7 +2,9 @@ package com.emojisphere.controller;
 
 import com.emojisphere.dto.CommentRequest;
 import com.emojisphere.dto.CommentResponse;
+import com.emojisphere.dto.group.GroupCommentResponse;
 import com.emojisphere.service.CommentService;
+import com.emojisphere.service.GroupCommentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,45 +22,45 @@ import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("group")
+@RequestMapping("/group-posts")
 public class GroupCommentController {
 
     @Autowired
-    private CommentService commentService;
+    private GroupCommentService commentService;
 
-    @GetMapping("/posts/{postId}/comments")
-    public ResponseEntity<Page<CommentResponse>> getCommentsByPost(
+    @GetMapping("/{postId}/comments")
+    public ResponseEntity<Page<GroupCommentResponse>> getCommentsByPost(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         String currentUserMobile = authentication != null ? authentication.getName() : null;
-        Page<CommentResponse> comments = commentService.getCommentsByPost(postId, pageable, currentUserMobile);
+        Page<GroupCommentResponse> comments = commentService.getCommentsByPost(postId, pageable, currentUserMobile);
         
         return ResponseEntity.ok(comments);
     }
 
-    @PostMapping("/posts/{postId}/comments")
+    @PostMapping("/{postId}/comments")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<CommentResponse> createComment(
+    public ResponseEntity<GroupCommentResponse> createComment(
             @PathVariable Long postId,
             @Valid @RequestBody CommentRequest commentRequest,
             Authentication authentication) {
         
-        CommentResponse comment = commentService.createComment(postId, commentRequest, authentication.getName());
+        GroupCommentResponse comment = commentService.createComment(postId, commentRequest, authentication.getName());
         return ResponseEntity.ok(comment);
     }
 
     @PutMapping("/comments/{commentId}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<CommentResponse> updateComment(
+    public ResponseEntity<GroupCommentResponse> updateComment(
             @PathVariable Long commentId,
             @Valid @RequestBody CommentRequest commentRequest,
             Authentication authentication) {
-        
-        CommentResponse comment = commentService.updateComment(commentId, commentRequest, authentication.getName());
+
+        GroupCommentResponse comment = commentService.updateComment(commentId, commentRequest, authentication.getName());
         return ResponseEntity.ok(comment);
     }
 
@@ -73,12 +75,12 @@ public class GroupCommentController {
     }
 
     @GetMapping("/comments/{parentCommentId}/replies")
-    public ResponseEntity<List<CommentResponse>> getReplies(
+    public ResponseEntity<List<GroupCommentResponse>> getReplies(
             @PathVariable Long parentCommentId,
             Authentication authentication) {
         
         String currentUserMobile = authentication != null ? authentication.getName() : null;
-        List<CommentResponse> replies = commentService.getReplies(parentCommentId, currentUserMobile);
+        List<GroupCommentResponse> replies = commentService.getReplies(parentCommentId, currentUserMobile);
         
         return ResponseEntity.ok(replies);
     }

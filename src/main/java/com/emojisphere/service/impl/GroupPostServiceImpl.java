@@ -1,10 +1,8 @@
+
 package com.emojisphere.service.impl;
 
 import com.emojisphere.dto.*;
-import com.emojisphere.entity.GroupPost;
-import com.emojisphere.entity.Post;
-import com.emojisphere.entity.Tag;
-import com.emojisphere.entity.User;
+import com.emojisphere.entity.*;
 import com.emojisphere.repository.*;
 import com.emojisphere.service.GroupPostService;
 import org.modelmapper.ModelMapper;
@@ -15,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -96,10 +95,36 @@ public class GroupPostServiceImpl implements GroupPostService {
     }
 
     @Override
-    public void deleteGroupPost(Long id, Long userId) {
-        GroupPost post = groupPostRepository.findById(id).orElseThrow();
-        if (!post.getUserId().equals(userId)) throw new RuntimeException("Unauthorized");
+    public void deleteGroupPost(Long id, String mobile) {
+        GroupPost post = groupPostRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+        // Check if user is the author
+        if (!post.getUser().getMobileNumber().equals(mobile)) {
+            throw new RuntimeException("You can only delete your own posts");
+        }
         groupPostRepository.delete(post);
+    }
+
+    @Override
+    public boolean toggleGroupLike(Long postId, String userMobile) {
+        GroupPost post = groupPostRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Group post not found"));
+        User user = userRepository.findByMobileNumber(userMobile)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Optional<GroupLike> existingLike = groupLikeRepository.findByUserAndPost(user, post);
+        if (existingLike.isPresent()) {
+            groupLikeRepository.delete(existingLike.get());
+            // Decrease like count
+            post.setLikesCount(Math.max(0L, post.getLikesCount() - 1));
+            groupPostRepository.save(post);
+            return false; // Unliked
+        } else {
+            GroupLike like = new GroupLike(user, post);
+            groupLikeRepository.save(like);
+            // Increase like count
+            post.setLikesCount(post.getLikesCount() + 1);
+            groupPostRepository.save(post);
+            return true; // Liked
+        }
     }
 
     private GroupPostResponse toResponse(GroupPost post) {

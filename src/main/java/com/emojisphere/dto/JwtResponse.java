@@ -9,14 +9,14 @@ public class JwtResponse {
     
     private String token;
     private String type = "Bearer";
-    private String id;
+    private Long id;
     private String fullName;
     private String mobile;
     private String email;
     private String role;
     private List<String> roles; // For backward compatibility
 
-    public JwtResponse(String accessToken, String id, String fullName, String mobile, String email, String role) {
+    public JwtResponse(String accessToken, Long id, String fullName, String mobile, String email, String role) {
         this.token = accessToken;
         this.id = id;
         this.fullName = fullName;
@@ -27,7 +27,7 @@ public class JwtResponse {
     }
 
     // Legacy constructor for backward compatibility
-    public JwtResponse(String accessToken, String id, String name, String mobile, String email, List<String> roles) {
+    public JwtResponse(String accessToken, Long id, String name, String mobile, String email, List<String> roles) {
         this.token = accessToken;
         this.id = id;
         this.fullName = name;

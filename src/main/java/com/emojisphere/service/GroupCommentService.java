@@ -1,9 +1,8 @@
-package com.emojisphere.service.impl;
+package com.emojisphere.service;
 
 import com.emojisphere.dto.CommentRequest;
 import com.emojisphere.dto.CommentResponse;
 import com.emojisphere.dto.UserResponse;
-import com.emojisphere.dto.group.GroupCommentRequest;
 import com.emojisphere.dto.group.GroupCommentResponse;
 import com.emojisphere.entity.*;
 import com.emojisphere.exception.ResourceNotFoundException;
@@ -61,7 +60,7 @@ public class GroupCommentService {
         return convertToCommentResponse(savedComment, userMobile);
     }
 
-    public GroupCommentResponse updateComment(Long commentId, GroupCommentRequest commentRequest, String userMobile) {
+    public GroupCommentResponse updateComment(Long commentId, CommentRequest commentRequest, String userMobile) {
         GroupComment comment = groupCommentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
 

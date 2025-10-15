@@ -10,5 +10,6 @@ public interface GroupPostService {
     GroupPostResponse getGroupPostById(Long id);
     GroupPostResponse createGroupPost(GroupPostRequest request, String mobile);
     GroupPostResponse updateGroupPost(Long id, GroupPostRequest request, Long userId);
-    void deleteGroupPost(Long id, Long userId);
+    void deleteGroupPost(Long id, String mobile);
+    boolean toggleGroupLike(Long postId, String userMobile);
 }

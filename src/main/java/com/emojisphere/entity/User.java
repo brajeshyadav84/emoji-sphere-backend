@@ -140,12 +140,12 @@ public class User {
     }
 
     // Getter methods for compatibility
-    public String getUserId() {
-        return this.mobileNumber;
+    public Long getUserId() {
+        return this.id;
     }
 
-    public void setUserId(String userId) {
-        this.mobileNumber = userId;
+    public void setUserId(Long userId) {
+        this.id = userId;
     }
 
     // Getter and setter for password compatibility

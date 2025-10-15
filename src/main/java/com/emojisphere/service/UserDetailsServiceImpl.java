@@ -30,14 +30,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     public static class UserPrincipal implements UserDetails {
-        private String id;
+        private Long id;
         private String fullName;
         private String mobile;
         private String email;
         private String password;
         private List<GrantedAuthority> authorities;
 
-        public UserPrincipal(String id, String fullName, String mobile, String email, String password, List<GrantedAuthority> authorities) {
+        public UserPrincipal(Long id, String fullName, String mobile, String email, String password, List<GrantedAuthority> authorities) {
             this.id = id;
             this.fullName = fullName;
             this.mobile = mobile;
@@ -52,7 +52,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             );
 
             return new UserPrincipal(
-                    user.getMobileNumber(),
+                    user.getId(),
                     user.getFullName(),
                     user.getMobileNumber(),
                     user.getEmail(),
@@ -60,7 +60,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                     authorities);
         }
 
-        public String getId() {
+        public Long getId() {
             return id;
         }
 

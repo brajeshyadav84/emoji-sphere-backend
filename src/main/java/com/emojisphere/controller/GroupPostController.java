@@ -14,6 +14,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/group-posts")
@@ -64,8 +67,20 @@ public class GroupPostController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteGroupPost(@PathVariable Long id, Authentication authentication) {
-        Long userId = Long.valueOf(authentication.getName());
-        groupPostService.deleteGroupPost(id, userId);
+        groupPostService.deleteGroupPost(id, authentication.getName());
         return ResponseEntity.ok().build();
+    }
+    @PostMapping("/{postId}/like")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> groupToggleLike(@PathVariable Long postId, Authentication authentication) {
+        String userMobile = authentication.getName();
+        boolean liked = groupPostService.toggleGroupLike(postId, userMobile);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", liked);
+        response.put("status", liked ? "liked" : "unliked");
+        response.put("message", liked ? "Group post liked successfully" : "Group post unliked successfully");
+
+        return ResponseEntity.ok(response);
     }
 }
