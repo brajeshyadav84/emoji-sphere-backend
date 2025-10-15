@@ -359,7 +359,7 @@ public class GroupController {
     
     @DeleteMapping("/{groupId}/members/{memberId}")
     public ResponseEntity<?> removeMember(@PathVariable Long groupId, 
-                                        @PathVariable String memberId, 
+                                        @PathVariable Long memberId,
                                         Authentication authentication) {
         try {
             String userMobile = authentication.getName();

@@ -82,25 +82,27 @@ public class GroupMemberService {
                 .collect(Collectors.toList());
     }
     
-    public void removeMember(Long groupId, String memberId, String userMobile) {
+    public void removeMember(Long groupId, Long memberId, String userMobile) {
         User admin = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
         
-        User memberToRemove = userRepository.findByMobileNumber(memberId)
+        User memberToRemove = userRepository.findById(memberId)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
         
         // Check if requesting user is admin
-        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getId(), "ADMIN")) {
-            throw new RuntimeException("Only admins can remove members");
+        if (!groupMemberRepository.existsByGroupIdAndUserIdAndStatus(group.getId(), admin.getId(), admin.getRole())) {
+            // Remove member
+            groupMemberRepository.deleteByGroupIdAndUserId(group.getId(), memberToRemove.getId());
+            // throw new RuntimeException("Only admins can remove members");
         }
         
         // Check if member exists in group
-        if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), memberToRemove.getId())) {
-            throw new RuntimeException("User is not a member of this group");
-        }
+        // if (!groupMemberRepository.existsByGroupIdAndUserId(group.getId(), memberToRemove.getId())) {
+        //     throw new RuntimeException("User is not a member of this group");
+        //}
         
         // Cannot remove yourself as admin if you're the only admin
         if (admin.getMobileNumber().equals(memberId)) {
@@ -215,11 +217,12 @@ public class GroupMemberService {
     }
     
     private GroupMemberResponse convertToGroupMemberResponse(GroupMember member) {
-        GroupMemberResponse response = modelMapper.map(member, GroupMemberResponse.class);
-        
+        GroupMemberResponse response = new GroupMemberResponse();
+
         // Set user info
     User user = userRepository.findById(member.getUserId()).orElse(null);
         if (user != null) {
+            response.setId(user.getId());
             response.setUserId(user.getMobileNumber());
             response.setFirstName(user.getFullName().split(" ")[0]);
             response.setLastName(user.getFullName().contains(" ") ? user.getFullName().substring(user.getFullName().indexOf(" ") + 1) : "");
@@ -233,6 +236,10 @@ public class GroupMemberService {
             response.setGroupId(group.getId());
             response.setGroupName(group.getName());
         }
+
+        response.setGroupId(member.getGroupId());
+        response.setGroupName("");
+        response.setJoinedAt(member.getJoinedAt());
         
         return response;
     }
