@@ -23,5 +23,7 @@ public class GroupPostRequest {
 
     private Long categoryId;
 
+    private Long groupId;
+
     private Set<String> tags;
 }

@@ -37,6 +37,9 @@ public class GroupPost {
     @Column(name = "title")
     private String title;
 
+    @Column(name = "group_id")
+    private Long groupId;
+
     @Lob
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
