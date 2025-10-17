@@ -238,7 +238,7 @@ public class FriendshipService {
         info.setMobileNumber(user.getMobileNumber());
         info.setCountry(user.getCountry());
         info.setSchoolName(user.getSchoolName());
-        info.setAge(user.getAge());
+        info.setDob(user.getDob());
         info.setGender(user.getGender());
         info.setIsActive(user.getIsActive());
         // Set online status fields

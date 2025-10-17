@@ -14,7 +14,7 @@ public class UpdateProfileRequest {
     @Email
     private String email;
     
-    private Integer age;
+    private String dob;
     
     @Size(max = 100)
     private String country;

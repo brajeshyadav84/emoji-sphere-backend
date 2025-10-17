@@ -52,7 +52,7 @@ public class GroupService {
     Group savedGroup = groupRepository.save(group);
 
     // Add creator as admin
-    GroupMember adminMember = new GroupMember(savedGroup.getId(), creator.getId(), creator.getAge(), "ADMIN");
+    GroupMember adminMember = new GroupMember(savedGroup.getId(), creator.getId(), creator.getDob(), "ADMIN");
     groupMemberRepository.save(adminMember);
 
     return convertToGroupResponse(savedGroup, creator);
@@ -202,7 +202,7 @@ public class GroupService {
         }
 
         // Create membership
-        GroupMember member = new GroupMember(group.getId(), user.getId(), user.getAge(), "MEMBER");
+        GroupMember member = new GroupMember(group.getId(), user.getId(), user.getDob(), "MEMBER");
         GroupMember savedMember = groupMemberRepository.save(member);
 
         return convertToGroupMemberResponse(savedMember);
@@ -302,7 +302,7 @@ public class GroupService {
         response.setStatus(member.getStatus());
         response.setJoinedAt(member.getJoinedAt());
         response.setIsActive(true); // or set based on your logic if available
-        // response.setAge(member.getAge());
+        // response.setAge(member.getDob());
         response.setGroupId(member.getGroupId());
 
         // Set user info

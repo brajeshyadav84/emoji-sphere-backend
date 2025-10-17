@@ -30,6 +30,9 @@ public class GroupMember {
     
     @Column(name = "age")
     private Integer age;
+
+    @Column(name = "dob")
+    private String dob;
     
     @Column(name = "status")
     private String status;
@@ -44,10 +47,10 @@ public class GroupMember {
     private User user;
     
     // Constructor for easier creation
-    public GroupMember(Long groupId, Long userId, Integer age, String status) {
+    public GroupMember(Long groupId, Long userId, String dob, String status) {
         this.groupId = groupId;
         this.userId = userId;
-        this.age = age;
+        this.dob = dob;
         this.status = status;
         this.joinedAt = LocalDateTime.now();
     }

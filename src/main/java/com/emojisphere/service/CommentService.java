@@ -143,7 +143,7 @@ public class CommentService {
             userResponse.setMobile(comment.getUser().getMobileNumber());
             userResponse.setFullName(comment.getUser().getFullName());
             userResponse.setEmail(comment.getUser().getEmail());
-            userResponse.setAge(comment.getUser().getAge());
+            userResponse.setDob(comment.getUser().getDob());
             userResponse.setCountry(comment.getUser().getCountry());
             userResponse.setGender(comment.getUser().getGender());
             userResponse.setIsVerified(comment.getUser().getIsVerified());

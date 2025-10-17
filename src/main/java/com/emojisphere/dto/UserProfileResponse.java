@@ -14,7 +14,7 @@ public class UserProfileResponse {
     private Long id;
     private String mobileNumber;
     private String fullName;
-    private Integer age;
+    private String dob;
     private String gender;
     private String country;
     private String schoolName;

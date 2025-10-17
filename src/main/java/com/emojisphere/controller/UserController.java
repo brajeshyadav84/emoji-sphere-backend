@@ -42,7 +42,7 @@ public class UserController {
                 user.getId(),
                 user.getMobileNumber(),
                 user.getFullName(),
-                user.getAge(),
+                user.getDob(),
                 user.getGender(),
                 user.getCountry(),
                 user.getSchoolName(),
@@ -93,8 +93,8 @@ public class UserController {
                 user.setEmail(updateRequest.getEmail());
             }
             
-            if (updateRequest.getAge() != null) {
-                user.setAge(updateRequest.getAge());
+            if (updateRequest.getDob() != null) {
+                user.setDob(updateRequest.getDob());
             }
             
             if (updateRequest.getCountry() != null) {
@@ -116,7 +116,7 @@ public class UserController {
                 user.getId(),
                 user.getMobileNumber(),
                 user.getFullName(),
-                user.getAge(),
+                user.getDob(),
                 user.getGender(),
                 user.getCountry(),
                 user.getSchoolName(),
@@ -151,7 +151,7 @@ public class UserController {
             UserProfileResponse response = new UserProfileResponse();
             response.setId(user.getId());
             response.setFullName(user.getFullName());
-            response.setAge(user.getAge());
+            response.setDob(user.getDob());
             response.setGender(user.getGender());
             response.setCountry(user.getCountry());
             response.setSchoolName(user.getSchoolName());

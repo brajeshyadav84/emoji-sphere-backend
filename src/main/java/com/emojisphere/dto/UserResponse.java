@@ -12,6 +12,7 @@ public class UserResponse {
     private String mobile;
     private String email;
     private Integer age;
+    private String dob;
     private String country;
     private String gender;
     private Boolean isVerified;

@@ -44,6 +44,9 @@ public class User {
     @Column(name = "age")
     private Integer age;
 
+    @Column(name = "dob")
+    private String dob;
+
     @Size(max = 10)
     @Column(name = "gender")
     private String gender;
@@ -120,20 +123,20 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    public User(String mobileNumber, String fullName, String passwordHash, Integer age, String country, String gender) {
+    public User(String mobileNumber, String fullName, String passwordHash, String dob, String country, String gender) {
         this.mobileNumber = mobileNumber;
         this.fullName = fullName;
         this.passwordHash = passwordHash;
-        this.age = age;
+        this.dob = dob;
         this.country = country;
         this.gender = gender;
     }
 
-    public User(String mobileNumber, String fullName, String passwordHash, Integer age, String country, String gender, String schoolName) {
+    public User(String mobileNumber, String fullName, String passwordHash, String dob, String country, String gender, String schoolName) {
         this.mobileNumber = mobileNumber;
         this.fullName = fullName;
         this.passwordHash = passwordHash;
-        this.age = age;
+        this.dob = dob;
         this.country = country;
         this.gender = gender;
         this.schoolName = schoolName;

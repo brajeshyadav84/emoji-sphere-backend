@@ -44,6 +44,7 @@ public class FriendshipResponse {
         private String country;
         private String schoolName;
         private Integer age;
+        private String dob;
         private String gender;
         private Boolean isActive;
 

@@ -31,6 +31,8 @@ public class SignupRequest {
     private String confirmPassword;
     
     private Integer age;
+
+    private String dob;
     
     @Size(max = 100)
     private String country;

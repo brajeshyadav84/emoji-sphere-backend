@@ -199,7 +199,7 @@ public class AuthController {
             signUpRequest.getMobile(),
             signUpRequest.getFullName(),
             encoder.encode(signUpRequest.getPassword()),
-            signUpRequest.getAge(),
+            signUpRequest.getDob(),
             signUpRequest.getCountry(),
             signUpRequest.getGender(),
             signUpRequest.getSchoolName()
