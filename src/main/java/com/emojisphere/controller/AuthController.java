@@ -152,22 +152,35 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
-        Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(
-                        loginRequest.getMobile(),
-                        loginRequest.getPassword()));
+    // Ensure user exists and is verified before attempting authentication
+    Optional<User> userOpt = userRepository.findByMobileNumber(loginRequest.getMobile());
+    if (userOpt.isEmpty()) {
+        return ResponseEntity.ok()
+            .body(new MessageResponse("Error: No account found with this mobile number."));
+    }
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = generateJwtToken(authentication);
+    User user = userOpt.get();
+    if (user.getIsVerified() == null || !user.getIsVerified()) {
+        return ResponseEntity.ok()
+            .body(new MessageResponse( "Error: Account verification is pending. Please verify your account before signing in.", user.getEmail()));
+    }
 
-        UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
+    Authentication authentication = authenticationManager
+        .authenticate(new UsernamePasswordAuthenticationToken(
+            loginRequest.getMobile(),
+            loginRequest.getPassword()));
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getFullName(),
-                userDetails.getMobile(),
-                userDetails.getEmail(),
-                userDetails.getRole())); // Use actual user role
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+    String jwt = generateJwtToken(authentication);
+
+    UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
+
+    return ResponseEntity.ok(new JwtResponse(jwt,
+        userDetails.getId(),
+        userDetails.getFullName(),
+        userDetails.getMobile(),
+        userDetails.getEmail(),
+        userDetails.getRole())); // Use actual user role
     }
 
     @PostMapping("/signup")
