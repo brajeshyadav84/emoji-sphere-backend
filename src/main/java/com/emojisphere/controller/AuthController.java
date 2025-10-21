@@ -56,55 +56,51 @@ public class AuthController {
     private String fromEmail;
 
     @PostMapping("/send-otp")
-    public ResponseEntity<?> sendOtp(@Valid @RequestBody OtpRequest otpRequest) {
+    public ResponseEntity<ApiResponse<Object>> sendOtp(@Valid @RequestBody OtpRequest otpRequest) {
         try {
             String otp = otpService.generateAndSaveOtp(otpRequest.getMobile());
             otpService.sendOtp(otpRequest.getMobile(), otp);
-            
-            return ResponseEntity.ok(new MessageResponse("OTP sent successfully to " + otpRequest.getMobile()));
+
+            return ResponseEntity.ok(ApiResponse.successMessage("OTP sent successfully to " + otpRequest.getMobile()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to send OTP. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to send OTP. " + e.getMessage(), 400));
         }
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@Valid @RequestBody OtpVerifyRequest otpVerifyRequest) {
+    public ResponseEntity<ApiResponse<Object>> verifyOtp(@Valid @RequestBody OtpVerifyRequest otpVerifyRequest) {
         boolean isValid = otpService.verifyOtp(otpVerifyRequest.getMobile(), otpVerifyRequest.getOtp());
-        
+
         if (isValid) {
-            return ResponseEntity.ok(new ValidationResponse(true, "OTP verified successfully"));
+            return ResponseEntity.ok(ApiResponse.successMessage("OTP verified successfully"));
         } else {
-            return ResponseEntity.badRequest()
-                    .body(new ValidationResponse(false, "Invalid or expired OTP"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Invalid or expired OTP", 400));
         }
     }
 
     @PostMapping("/send-email-otp")
-    public ResponseEntity<?> sendEmailOtp(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
+    public ResponseEntity<ApiResponse<Object>> sendEmailOtp(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
         try {
             // Check if email already exists and is verified
             Optional<User> existingUser = userRepository.findByEmail(emailOtpRequest.getEmail());
             if (existingUser.isPresent() && existingUser.get().getIsVerified()) {
-                return ResponseEntity.badRequest()
-                        .body(new MessageResponse("Error: This email is already verified!"));
+                return ResponseEntity.status(400).body(ApiResponse.error("This email is already verified!", 400));
             }
-            
+
             String otp = otpService.generateAndSaveEmailOtp(emailOtpRequest.getEmail());
             otpService.sendEmailOtp(emailOtpRequest.getEmail(), otp);
-            
-            return ResponseEntity.ok(new MessageResponse("OTP sent successfully to " + emailOtpRequest.getEmail()));
+
+            return ResponseEntity.ok(ApiResponse.successMessage("OTP sent successfully to " + emailOtpRequest.getEmail()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to send email OTP. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to send email OTP. " + e.getMessage(), 400));
         }
     }
 
     @PostMapping("/verify-email-otp")
-    public ResponseEntity<?> verifyEmailOtp(@Valid @RequestBody EmailOtpVerifyRequest emailOtpVerifyRequest) {
+    public ResponseEntity<ApiResponse<Object>> verifyEmailOtp(@Valid @RequestBody EmailOtpVerifyRequest emailOtpVerifyRequest) {
         try {
             boolean isValid = otpService.verifyEmailOtp(emailOtpVerifyRequest.getEmail(), emailOtpVerifyRequest.getOtp());
-            
+
             if (isValid) {
                 // Update user verification status
                 Optional<User> userOpt = userRepository.findByEmail(emailOtpVerifyRequest.getEmail());
@@ -112,57 +108,50 @@ public class AuthController {
                     User user = userOpt.get();
                     user.setIsVerified(true);
                     userRepository.save(user);
-                    
-                    return ResponseEntity.ok(new ValidationResponse(true, "Email verified successfully! Your account is now active."));
+
+                    return ResponseEntity.ok(ApiResponse.successMessage("Email verified successfully! Your account is now active."));
                 } else {
-                    return ResponseEntity.badRequest()
-                            .body(new ValidationResponse(false, "User not found with this email address"));
+                    return ResponseEntity.status(400).body(ApiResponse.error("User not found with this email address", 400));
                 }
             } else {
-                return ResponseEntity.badRequest()
-                        .body(new ValidationResponse(false, "Invalid or expired OTP"));
+                return ResponseEntity.status(400).body(ApiResponse.error("Invalid or expired OTP", 400));
             }
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new ValidationResponse(false, "Error verifying OTP: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Error verifying OTP: " + e.getMessage(), 400));
         }
     }
 
     @PostMapping("/validate-mobile")
-    public ResponseEntity<?> validateMobile(@Valid @RequestBody OtpRequest otpRequest) {
+    public ResponseEntity<ApiResponse<Object>> validateMobile(@Valid @RequestBody OtpRequest otpRequest) {
         // Check if mobile number is already registered
         if (userRepository.existsByMobileNumber(otpRequest.getMobile())) {
-            return ResponseEntity.badRequest()
-                    .body(new ValidationResponse(false, "Mobile number is already registered!"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Mobile number is already registered!", 400));
         }
-        
-        return ResponseEntity.ok(new ValidationResponse(true, "Mobile number is available"));
+
+        return ResponseEntity.ok(ApiResponse.successMessage("Mobile number is available"));
     }
 
     @PostMapping("/check-email")
-    public ResponseEntity<?> checkEmail(@RequestBody String email) {
+    public ResponseEntity<ApiResponse<Object>> checkEmail(@RequestBody String email) {
         if (email != null && !email.trim().isEmpty() && userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest()
-                    .body(new ValidationResponse(false, "Email is already in use!"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Email is already in use!", 400));
         }
-        
-        return ResponseEntity.ok(new ValidationResponse(true, "Email is available"));
+
+        return ResponseEntity.ok(ApiResponse.successMessage("Email is available"));
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<Object>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
     // Ensure user exists and is verified before attempting authentication
     Optional<User> userOpt = userRepository.findByMobileNumber(loginRequest.getMobile());
     if (userOpt.isEmpty()) {
-        return ResponseEntity.ok()
-            .body(new MessageResponse("Error: No account found with this mobile number."));
+        return ResponseEntity.status(400).body(ApiResponse.error("No account found with this mobile number.", 400));
     }
 
     User user = userOpt.get();
     if (user.getIsVerified() == null || !user.getIsVerified()) {
-        return ResponseEntity.ok()
-            .body(new MessageResponse( "Error: Account verification is pending. Please verify your account before signing in.", user.getEmail()));
+        return ResponseEntity.status(400).body(ApiResponse.error("Account verification is pending. Please verify your account before signing in.", 400));
     }
 
     Authentication authentication = authenticationManager
@@ -175,36 +164,34 @@ public class AuthController {
 
     UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
 
-    return ResponseEntity.ok(new JwtResponse(jwt,
+    JwtResponse jwtResp = new JwtResponse(jwt,
         userDetails.getId(),
         userDetails.getFullName(),
         userDetails.getMobile(),
         userDetails.getEmail(),
-        userDetails.getRole())); // Use actual user role
+        userDetails.getRole()); // Use actual user role
+
+    return ResponseEntity.ok(ApiResponse.ok(jwtResp, "Authenticated successfully"));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+    public ResponseEntity<ApiResponse<Object>> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         // Validate password confirmation
         if (!signUpRequest.getPassword().equals(signUpRequest.getConfirmPassword())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Password and confirm password do not match!"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Password and confirm password do not match!", 400));
         }
 
         if (userRepository.existsByMobileNumber(signUpRequest.getMobile())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Mobile number is already registered!"));
+        return ResponseEntity.status(400).body(ApiResponse.error("Mobile number is already registered!", 400));
         }
 
         if (signUpRequest.getEmail() != null && userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Email is already in use!"));
+        return ResponseEntity.status(400).body(ApiResponse.error("Email is already in use!", 400));
         }
 
         // Email is required for registration
         if (signUpRequest.getEmail() == null || signUpRequest.getEmail().trim().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Email is required for registration!"));
+        return ResponseEntity.status(400).body(ApiResponse.error("Email is required for registration!", 400));
         }
 
         // Create new user's account with new constructor
@@ -235,40 +222,36 @@ public class AuthController {
 
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        return ResponseEntity.ok(ApiResponse.successMessage("User registered successfully!"));
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
+    public ResponseEntity<ApiResponse<Object>> forgotPassword(@Valid @RequestBody EmailOtpRequest emailOtpRequest) {
         // Check if user exists by email
         if (!userRepository.existsByEmail(emailOtpRequest.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: No account found with this email address!"));
+            return ResponseEntity.status(400).body(ApiResponse.error("No account found with this email address!", 400));
         }
 
         try {
             String otp = otpService.generateAndSaveEmailOtp(emailOtpRequest.getEmail());
             otpService.sendEmailOtp(emailOtpRequest.getEmail(), otp);
             
-            return ResponseEntity.ok(new MessageResponse("Password reset OTP sent successfully to " + emailOtpRequest.getEmail()));
+            return ResponseEntity.ok(ApiResponse.successMessage("Password reset OTP sent successfully to " + emailOtpRequest.getEmail()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to send password reset OTP. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to send password reset OTP. " + e.getMessage(), 400));
         }
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody EmailResetPasswordRequest resetPasswordRequest) {
+    public ResponseEntity<ApiResponse<Object>> resetPassword(@Valid @RequestBody EmailResetPasswordRequest resetPasswordRequest) {
         // Verify OTP first
         if (!otpService.verifyEmailOtp(resetPasswordRequest.getEmail(), resetPasswordRequest.getOtp())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Invalid or expired OTP"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Invalid or expired OTP", 400));
         }
 
         // Validate password confirmation
         if (!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmPassword())) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Password and confirm password do not match!"));
+            return ResponseEntity.status(400).body(ApiResponse.error("Password and confirm password do not match!", 400));
         }
 
         // Find user by email and update password
@@ -278,7 +261,7 @@ public class AuthController {
         user.setPasswordHash(encoder.encode(resetPasswordRequest.getNewPassword()));
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("Password reset successfully!"));
+        return ResponseEntity.ok(ApiResponse.successMessage("Password reset successfully!"));
     }
 
     private String generateJwtToken(Authentication authentication) {

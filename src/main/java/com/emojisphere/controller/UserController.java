@@ -1,5 +1,6 @@
 package com.emojisphere.controller;
 
+import com.emojisphere.dto.ApiResponse;
 import com.emojisphere.dto.MessageResponse;
 import com.emojisphere.dto.UpdateProfileRequest;
 import com.emojisphere.dto.UserProfileResponse;
@@ -26,7 +27,7 @@ public class UserController {
     private UserRepository userRepository;
 
     @GetMapping("/profile")
-    public ResponseEntity<?> getUserProfile() {
+    public ResponseEntity<ApiResponse<Object>> getUserProfile() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
@@ -34,7 +35,7 @@ public class UserController {
             Optional<User> userOptional = userRepository.findByMobileNumber(userDetails.getMobile());
             
             if (userOptional.isEmpty()) {
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found", 404));
             }
             
             User user = userOptional.get();
@@ -54,15 +55,14 @@ public class UserController {
                 user.getUpdatedAt()
             );
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to fetch user profile. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to fetch user profile. " + e.getMessage(), 400));
         }
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<?> updateUserProfile(@Valid @RequestBody UpdateProfileRequest updateRequest) {
+    public ResponseEntity<ApiResponse<Object>> updateUserProfile(@Valid @RequestBody UpdateProfileRequest updateRequest) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             UserDetailsServiceImpl.UserPrincipal userDetails = (UserDetailsServiceImpl.UserPrincipal) authentication.getPrincipal();
@@ -70,8 +70,7 @@ public class UserController {
             Optional<User> userOptional = userRepository.findByMobileNumber(userDetails.getMobile());
             
             if (userOptional.isEmpty()) {
-                return ResponseEntity.status(404)
-                        .body(new MessageResponse("Error: User not found!"));
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found!", 404));
             }
             
             User user = userOptional.get();
@@ -79,8 +78,7 @@ public class UserController {
             // Check if email is being updated and if it's already in use by another user
             if (updateRequest.getEmail() != null && !updateRequest.getEmail().equals(user.getEmail())) {
                 if (userRepository.existsByEmail(updateRequest.getEmail())) {
-                    return ResponseEntity.badRequest()
-                            .body(new MessageResponse("Error: Email is already in use by another user!"));
+                    return ResponseEntity.status(400).body(ApiResponse.error("Email is already in use by another user!", 400));
                 }
             }
             
@@ -128,21 +126,19 @@ public class UserController {
                 user.getUpdatedAt()
             );
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to update user profile. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to update user profile. " + e.getMessage(), 400));
         }
     }
 
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<?> getUserProfileById(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> getUserProfileById(@PathVariable Long userId) {
         try {
             Optional<User> userOptional = userRepository.findById(userId);
             
             if (userOptional.isEmpty()) {
-                return ResponseEntity.status(404)
-                        .body(new MessageResponse("Error: User not found!"));
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found!", 404));
             }
             
             User user = userOptional.get();
@@ -161,10 +157,9 @@ public class UserController {
             
             // Don't expose sensitive information like email, mobile, etc. for public profile
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to fetch user profile. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to fetch user profile. " + e.getMessage(), 400));
         }
     }
 
@@ -178,8 +173,7 @@ public class UserController {
             Optional<User> userOptional = userRepository.findByMobileNumber(userDetails.getMobile());
             
             if (userOptional.isEmpty()) {
-                return ResponseEntity.status(404)
-                        .body(new MessageResponse("Error: User not found!"));
+                return ResponseEntity.status(404).body(ApiResponse.error("User not found!", 404));
             }
             
             User user = userOptional.get();
@@ -236,15 +230,16 @@ public class UserController {
             
             User user = userOptional.get();
             
-            return ResponseEntity.ok(new UserStatusResponse(
+            UserStatusResponse statusResp = new UserStatusResponse(
                 user.getId(),
                 user.getIsOnline(),
                 user.getOnlineStatus(),
                 user.getLastSeen()
-            ));
+            );
+
+            return ResponseEntity.ok(ApiResponse.ok(statusResp));
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: Failed to fetch user status. " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to fetch user status. " + e.getMessage(), 500));
         }
     }
 

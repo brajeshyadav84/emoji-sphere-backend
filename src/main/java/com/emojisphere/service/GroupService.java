@@ -125,17 +125,22 @@ public class GroupService {
     }
     
     public List<GroupResponse> getUserGroups(String userMobile) {
+        // If no userMobile provided, return empty list for anonymous users
+        if (userMobile == null) {
+            return List.of();
+        }
+
         User user = userRepository.findByMobileNumber(userMobile)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         // Find groups where user is a member
         List<GroupMember> userMemberships = groupMemberRepository.findByUserId(user.getId());
         List<Long> groupIds = userMemberships.stream().map(GroupMember::getGroupId).collect(Collectors.toList());
-        
+
         if (groupIds.isEmpty()) {
             return List.of();
         }
-        
+
         List<Group> userGroups = groupRepository.findAllById(groupIds);
         return userGroups.stream()
                 .map(group -> convertToGroupResponse(group, user))
@@ -259,18 +264,58 @@ public class GroupService {
     }
     
     public List<GroupResponse> getGroupRecommendations(String userMobile, int limit) {
-        User user = userRepository.findByMobileNumber(userMobile)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        // Get public groups that user is not already a member of
+        // If anonymous user, return public groups (no personalization)
         Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
         Page<Group> publicGroups = groupRepository.findByPrivacy("PUBLIC", pageable);
-        
-    return publicGroups.getContent().stream()
-        .filter(group -> !groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId()))
-        .map(group -> convertToGroupResponse(group, user))
-        .limit(limit)
-        .collect(Collectors.toList());
+
+        if (userMobile == null) {
+            return publicGroups.getContent().stream()
+                    .map(group -> {
+                        // convert with null currentUser: create a minimal placeholder user to avoid NPEs in response conversion
+                        User placeholder = new User();
+                        placeholder.setId(null);
+                        return convertToGroupResponseForAnonymous(group);
+                    })
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
+
+        User user = userRepository.findByMobileNumber(userMobile)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Get public groups that user is not already a member of
+        return publicGroups.getContent().stream()
+            .filter(group -> !groupMemberRepository.existsByGroupIdAndUserId(group.getId(), user.getId()))
+            .map(group -> convertToGroupResponse(group, user))
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    // Helper to convert group response for anonymous users (no currentUser context)
+    private GroupResponse convertToGroupResponseForAnonymous(Group group) {
+        GroupResponse response = new GroupResponse();
+        response.setId(group.getId());
+        response.setName(group.getName());
+        response.setEmoji(group.getEmoji());
+        response.setDescription(group.getDescription());
+        response.setPrivacy(group.getPrivacy());
+        response.setCreatedAt(group.getCreatedAt());
+
+        User creator = userRepository.findById(group.getCreatedBy()).orElse(null);
+        if (creator != null) {
+            response.setCreatedById(creator.getMobileNumber());
+            response.setCreatedByName(creator.getFullName());
+            response.setCreatedByMobile(creator.getMobileNumber());
+        }
+
+        response.setMemberCount(groupMemberRepository.countByGroupId(group.getId()));
+        response.setAdminCount(groupMemberRepository.countByGroupIdAndStatus(group.getId(), "ADMIN"));
+
+        // For anonymous users, membership/admin flags are false
+        response.setIsUserMember(false);
+        response.setIsUserAdmin(false);
+
+        return response;
     }
     
     private GroupResponse convertToGroupResponse(Group group, User currentUser) {

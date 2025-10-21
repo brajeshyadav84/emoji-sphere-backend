@@ -1,5 +1,6 @@
 package com.emojisphere.controller;
 
+import com.emojisphere.dto.ApiResponse;
 import com.emojisphere.dto.chat.*;
 import com.emojisphere.entity.User;
 import com.emojisphere.repository.UserRepository;
@@ -32,16 +33,16 @@ public class ChatController {
      */
     @PostMapping("/send")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> sendMessage(@Valid @RequestBody SendMessageRequest request) {
+    public ResponseEntity<ApiResponse<Object>> sendMessage(@Valid @RequestBody SendMessageRequest request) {
         try {
             Long senderId = getCurrentUserId();
             ChatMessageResponse response = chatService.sendMessage(senderId, request);
             
             log.info("Message sent successfully from user {} to user {}", senderId, request.getReceiverId());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
             log.error("Error sending message: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 400));
         }
     }
 
@@ -50,18 +51,17 @@ public class ChatController {
      */
     @GetMapping("/conversation/{conversationId}/messages")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> getMessages(
+    public ResponseEntity<ApiResponse<Object>> getMessages(
             @PathVariable Long conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
             Long userId = getCurrentUserId();
             MessagesResponse response = chatService.getMessages(userId, conversationId, page, size);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
             log.error("Error getting messages for conversation {}: {}", conversationId, e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -70,17 +70,16 @@ public class ChatController {
      */
     @GetMapping("/conversations")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> getConversations(
+    public ResponseEntity<ApiResponse<Object>> getConversations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
             Long userId = getCurrentUserId();
             ConversationListResponse response = chatService.getConversations(userId, page, size);
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
             log.error("Error getting conversations for user: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -89,15 +88,14 @@ public class ChatController {
      */
     @PostMapping("/conversation/{conversationId}/mark-read")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> markMessagesAsRead(@PathVariable Long conversationId) {
+    public ResponseEntity<ApiResponse<Object>> markMessagesAsRead(@PathVariable Long conversationId) {
         try {
             Long userId = getCurrentUserId();
             chatService.markMessagesAsRead(userId, conversationId);
-            
-            return ResponseEntity.ok(Map.of("message", "Messages marked as read"));
+            return ResponseEntity.ok(ApiResponse.successMessage("Messages marked as read"));
         } catch (Exception e) {
             log.error("Error marking messages as read: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -106,15 +104,14 @@ public class ChatController {
      */
     @GetMapping("/unread-count")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> getUnreadMessageCount() {
+    public ResponseEntity<ApiResponse<Object>> getUnreadMessageCount() {
         try {
             Long userId = getCurrentUserId();
             Long unreadCount = chatService.getUnreadMessageCount(userId);
-            
-            return ResponseEntity.ok(Map.of("unreadCount", unreadCount));
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("unreadCount", unreadCount)));
         } catch (Exception e) {
             log.error("Error getting unread message count: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -123,15 +120,14 @@ public class ChatController {
      */
     @PostMapping("/block/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> blockUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> blockUser(@PathVariable Long userId) {
         try {
             Long blockerId = getCurrentUserId();
             chatService.blockUser(blockerId, userId);
-            
-            return ResponseEntity.ok(Map.of("message", "User blocked successfully"));
+            return ResponseEntity.ok(ApiResponse.successMessage("User blocked successfully"));
         } catch (Exception e) {
             log.error("Error blocking user: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -140,15 +136,14 @@ public class ChatController {
      */
     @PostMapping("/unblock/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> unblockUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> unblockUser(@PathVariable Long userId) {
         try {
             Long blockerId = getCurrentUserId();
             chatService.unblockUser(blockerId, userId);
-            
-            return ResponseEntity.ok(Map.of("message", "User unblocked successfully"));
+            return ResponseEntity.ok(ApiResponse.successMessage("User unblocked successfully"));
         } catch (Exception e) {
             log.error("Error unblocking user: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
@@ -157,7 +152,7 @@ public class ChatController {
      */
     @PostMapping("/start/{friendId}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> startConversation(@PathVariable Long friendId) {
+    public ResponseEntity<ApiResponse<Object>> startConversation(@PathVariable Long friendId) {
         try {
             Long userId = getCurrentUserId();
             
@@ -169,14 +164,13 @@ public class ChatController {
             
             ChatMessageResponse response = chatService.sendMessage(userId, initialMessage);
             
-            return ResponseEntity.ok(Map.of(
-                "message", "Conversation started",
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
                 "conversationId", response.getConversationId(),
                 "initialMessage", response
-            ));
+            ), "Conversation started"));
         } catch (Exception e) {
             log.error("Error starting conversation: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 

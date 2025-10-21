@@ -4,6 +4,7 @@ import com.emojisphere.dto.CategoryResponse;
 import com.emojisphere.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import com.emojisphere.dto.ApiResponse;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,14 +18,14 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+    public ResponseEntity<ApiResponse<Object>> getAllCategories() {
         List<CategoryResponse> categories = categoryService.getAllActiveCategories();
-        return ResponseEntity.ok(categories);
+        return ResponseEntity.ok(ApiResponse.ok(categories));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Object>> getCategoryById(@PathVariable Long id) {
         CategoryResponse category = categoryService.getCategoryById(id);
-        return ResponseEntity.ok(category);
+        return ResponseEntity.ok(ApiResponse.ok(category));
     }
 }

@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import com.emojisphere.dto.ApiResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,34 +34,32 @@ public class FriendshipController {
 
     @PostMapping("/send-request")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> sendFriendRequest(@Valid @RequestBody FriendRequestDto request) {
+    public ResponseEntity<ApiResponse<Object>> sendFriendRequest(@Valid @RequestBody FriendRequestDto request) {
         try {
             Long currentUserId = getCurrentUserId();
             FriendshipResponse response = friendshipService.sendFriendRequest(currentUserId, request.getTargetUserId());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @PostMapping("/send-request-by-id/{targetUserId}")
     @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
-    public ResponseEntity<?> sendFriendRequestById(@PathVariable Long targetUserId) {
+    public ResponseEntity<ApiResponse<Object>> sendFriendRequestById(@PathVariable Long targetUserId) {
         try {
             Long currentUserId = getCurrentUserId();
             FriendshipResponse response = friendshipService.sendFriendRequest(currentUserId, targetUserId);
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @PostMapping("/respond")
-    public ResponseEntity<?> respondToFriendRequest(@Valid @RequestBody FriendResponseDto request) {
+    public ResponseEntity<ApiResponse<Object>> respondToFriendRequest(@Valid @RequestBody FriendResponseDto request) {
         try {
             Long currentUserId = getCurrentUserId();
             FriendshipResponse response = friendshipService.respondToFriendRequest(
@@ -69,15 +68,14 @@ public class FriendshipController {
                     request.getResponse()
             );
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 400));
         }
     }
 
     @GetMapping("/friends")
-    public ResponseEntity<?> getFriends(
+    public ResponseEntity<ApiResponse<Object>> getFriends(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
@@ -92,15 +90,14 @@ public class FriendshipController {
             response.put("hasNext", friends.hasNext());
             response.put("hasPrevious", friends.hasPrevious());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @GetMapping("/pending/received")
-    public ResponseEntity<?> getPendingRequestsReceived(
+    public ResponseEntity<ApiResponse<Object>> getPendingRequestsReceived(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
@@ -115,15 +112,14 @@ public class FriendshipController {
             response.put("hasNext", requests.hasNext());
             response.put("hasPrevious", requests.hasPrevious());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @GetMapping("/pending/sent")
-    public ResponseEntity<?> getPendingRequestsSent(
+    public ResponseEntity<ApiResponse<Object>> getPendingRequestsSent(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
@@ -138,15 +134,14 @@ public class FriendshipController {
             response.put("hasNext", requests.hasNext());
             response.put("hasPrevious", requests.hasPrevious());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @GetMapping("/all")
-    public ResponseEntity<?> getAllFriendships(
+    public ResponseEntity<ApiResponse<Object>> getAllFriendships(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
@@ -161,54 +156,50 @@ public class FriendshipController {
             response.put("hasNext", friendships.hasNext());
             response.put("hasPrevious", friendships.hasPrevious());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @DeleteMapping("/remove/{friendId}")
-    public ResponseEntity<?> removeFriend(@PathVariable Long friendId) {
+    public ResponseEntity<ApiResponse<Object>> removeFriend(@PathVariable Long friendId) {
         try {
             Long currentUserId = getCurrentUserId();
             String message = friendshipService.removeFriend(currentUserId, friendId);
             
-            return ResponseEntity.ok(new MessageResponse(message));
+            return ResponseEntity.ok(ApiResponse.successMessage(message));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @PostMapping("/block/{userId}")
-    public ResponseEntity<?> blockUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> blockUser(@PathVariable Long userId) {
         try {
             Long currentUserId = getCurrentUserId();
             friendshipService.blockUser(currentUserId, userId);
             
-            return ResponseEntity.ok(new MessageResponse("User blocked successfully"));
+            return ResponseEntity.ok(ApiResponse.successMessage("User blocked successfully"));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @PostMapping("/unblock/{userId}")
-    public ResponseEntity<?> unblockUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> unblockUser(@PathVariable Long userId) {
         try {
             Long currentUserId = getCurrentUserId();
             friendshipService.unblockUser(currentUserId, userId);
             
-            return ResponseEntity.ok(new MessageResponse("User unblocked successfully"));
+            return ResponseEntity.ok(ApiResponse.successMessage("User unblocked successfully"));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @GetMapping("/status/{userId}")
-    public ResponseEntity<?> getFriendshipStatus(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Object>> getFriendshipStatus(@PathVariable Long userId) {
         try {
             Long currentUserId = getCurrentUserId();
             
@@ -229,15 +220,14 @@ public class FriendshipController {
                 status.put("friendship", friendshipDetails);
             }
             
-            return ResponseEntity.ok(status);
+            return ResponseEntity.ok(ApiResponse.ok(status));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 
     @GetMapping("/counts")
-    public ResponseEntity<?> getFriendshipCounts() {
+    public ResponseEntity<ApiResponse<Object>> getFriendshipCounts() {
         try {
             Long currentUserId = getCurrentUserId();
             
@@ -245,10 +235,9 @@ public class FriendshipController {
             counts.put("friendsCount", friendshipService.getFriendsCount(currentUserId));
             counts.put("pendingRequestsCount", friendshipService.getPendingRequestsCount(currentUserId));
             
-            return ResponseEntity.ok(counts);
+            return ResponseEntity.ok(ApiResponse.ok(counts));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Error: " + e.getMessage()));
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
     }
 

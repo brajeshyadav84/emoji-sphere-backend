@@ -1,9 +1,11 @@
 package com.emojisphere.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.HashMap;
 import java.util.Map;
+import com.emojisphere.dto.ApiResponse;
 import org.json.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import javax.crypto.Mac;
@@ -20,15 +22,15 @@ public class ZoomSignatureController {
     private String sdkSecret;
 
     @GetMapping("/zoom-signature")
-    public Map<String, String> getSignature(@RequestParam String meetingNumber, @RequestParam int role) {
+    public ResponseEntity<ApiResponse<Object>> getSignature(@RequestParam String meetingNumber, @RequestParam int role) {
         Map<String, String> response = new HashMap<>();
         try {
             String signature = generateSignature(sdkKey, sdkSecret, meetingNumber, role);
             response.put("signature", signature);
+            return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
-            response.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));
         }
-        return response;
     }
 
     // JWT HS256 signature generation
