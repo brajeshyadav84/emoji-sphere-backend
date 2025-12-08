@@ -73,6 +73,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/group-posts/**").permitAll()
                 // Allow public access to these group endpoints (no access token required)
                 .requestMatchers("/groups/recommendations").permitAll()
+                // Allow public access to view teacher meetings (for students)
+                .requestMatchers("/teacher-meetings/public").permitAll()
                 .requestMatchers("/api/user/**").authenticated()
                 .requestMatchers("/api/friendships/**").authenticated()
                 .requestMatchers("/api/chat/**").authenticated()
