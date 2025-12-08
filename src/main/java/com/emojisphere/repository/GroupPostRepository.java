@@ -35,6 +35,19 @@ public interface GroupPostRepository extends JpaRepository<GroupPost, Long> {
     @Query("SELECT p FROM GroupPost p WHERE p.isPublic = true ORDER BY p.createdAt DESC")
     Page<GroupPost> findRecentPosts(Pageable pageable);
 
-    @Query(value = "CALL sp_get_group_posts_with_details_json(:groupId, :offset, :limit)", nativeQuery = true)
-    List<Object[]> getGroupPostsWithDetails(@Param("groupId") Long groupId, @Param("offset") int offset, @Param("limit") int limit);
+    @Query(value = "CALL sp_get_group_posts_with_details_json2(:groupId, :offset, :limit)", nativeQuery = true)
+    List<Object> getGroupPostsWithDetails(@Param("groupId") Long groupId, @Param("offset") int offset, @Param("limit") int limit);
+
+    // Count total number of group posts
+    long count();
+    
+    // Count total number of public group posts
+    long countByIsPublicTrue();
+    
+    // Count total number of group posts by user
+    long countByUser(User user);
+    
+    // Count total number of posts by group_id
+    @Query("SELECT COUNT(p) FROM GroupPost p WHERE p.groupId = :groupId")
+    long countByGroupId(@Param("groupId") Long groupId);
 }

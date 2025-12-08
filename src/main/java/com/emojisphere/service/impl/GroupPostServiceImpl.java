@@ -203,7 +203,7 @@ public class GroupPostServiceImpl implements GroupPostService {
 
         try {
             System.out.println("Calling stored procedure with offset=" + offset + ", limit=" + limit);
-            List<Object[]> results = groupPostRepository.getGroupPostsWithDetails(id, offset, limit);
+            List<Object> results = groupPostRepository.getGroupPostsWithDetails(id, offset, limit);
 
             if (results == null || results.isEmpty()) {
                 System.out.println("No results returned from stored procedure, falling back to regular query");
@@ -211,8 +211,7 @@ public class GroupPostServiceImpl implements GroupPostService {
             }
 
             // The stored procedure returns a single row with JSON array
-            Object[] firstRow = results.get(0);
-            String jsonResult = (String) firstRow[0];
+            String jsonResult = (String) results.get(0);
 
             System.out.println("Raw JSON result: " + (jsonResult != null ? jsonResult.substring(0, Math.min(200, jsonResult.length())) + "..." : "null"));
 
@@ -249,7 +248,7 @@ public class GroupPostServiceImpl implements GroupPostService {
 
             // For simplicity, we'll use the returned list size as total.
             // In a real scenario, you might want to call another stored procedure to get the total count
-            long total = posts.size() + offset; // This is an approximation
+            long total = groupPostRepository.countByGroupId(id); // posts.size() + offset; // This is an approximation
 
             return new PageImpl<>(posts, pageable, total);
 
