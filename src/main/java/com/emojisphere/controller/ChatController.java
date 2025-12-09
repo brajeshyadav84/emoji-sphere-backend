@@ -9,6 +9,7 @@ import com.emojisphere.service.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +18,10 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.Map;
 
+/**
+ * REST Controller for chat operations
+ * Provides HTTP endpoints with optional WebSocket notification support
+ */
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
@@ -27,18 +32,41 @@ public class ChatController {
 
     private final ChatService chatService;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Send a message to another user
+     * Send a message to another user via REST API
+     * Also sends WebSocket notification to recipient if connected
      */
     @PostMapping("/send")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> sendMessage(@Valid @RequestBody SendMessageRequest request) {
         try {
             Long senderId = getCurrentUserId();
             ChatMessageResponse response = chatService.sendMessage(senderId, request);
             
-            log.info("Message sent successfully from user {} to user {}", senderId, request.getReceiverId());
+            log.info("REST: Message sent successfully from user {} to user {}", senderId, request.getReceiverId());
+            
+            // Send WebSocket notification to recipient
+            try {
+                messagingTemplate.convertAndSendToUser(
+                    String.valueOf(request.getReceiverId()),
+                    "/queue/messages",
+                    response
+                );
+                
+                // Also broadcast to conversation topic
+                messagingTemplate.convertAndSend(
+                    "/topic/conversation/" + response.getConversationId(),
+                    response
+                );
+                
+                log.debug("WebSocket notification sent for message {}", response.getId());
+            } catch (Exception wsError) {
+                log.warn("Failed to send WebSocket notification: {}", wsError.getMessage());
+                // Continue even if WebSocket notification fails
+            }
+            
             return ResponseEntity.ok(ApiResponse.ok(response));
         } catch (Exception e) {
             log.error("Error sending message: {}", e.getMessage(), e);
@@ -50,7 +78,7 @@ public class ChatController {
      * Get messages for a conversation
      */
     @GetMapping("/conversation/{conversationId}/messages")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getMessages(
             @PathVariable Long conversationId,
             @RequestParam(defaultValue = "0") int page,
@@ -69,7 +97,7 @@ public class ChatController {
      * Get user's conversations
      */
     @GetMapping("/conversations")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getConversations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -84,14 +112,28 @@ public class ChatController {
     }
 
     /**
-     * Mark messages as read in a conversation
+     * Mark messages as read in a conversation via REST API
+     * Also sends read receipt via WebSocket to senders
      */
     @PostMapping("/conversation/{conversationId}/mark-read")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> markMessagesAsRead(@PathVariable Long conversationId) {
         try {
             Long userId = getCurrentUserId();
             chatService.markMessagesAsRead(userId, conversationId);
+            
+            // Send read receipt via WebSocket
+            try {
+                MessageReadReceipt receipt = new MessageReadReceipt(conversationId, userId, null);
+                messagingTemplate.convertAndSend(
+                    "/topic/conversation/" + conversationId + "/read",
+                    receipt
+                );
+                log.debug("WebSocket read receipt sent for conversation {}", conversationId);
+            } catch (Exception wsError) {
+                log.warn("Failed to send WebSocket read receipt: {}", wsError.getMessage());
+            }
+            
             return ResponseEntity.ok(ApiResponse.successMessage("Messages marked as read"));
         } catch (Exception e) {
             log.error("Error marking messages as read: {}", e.getMessage(), e);
@@ -103,7 +145,7 @@ public class ChatController {
      * Get unread message count
      */
     @GetMapping("/unread-count")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getUnreadMessageCount() {
         try {
             Long userId = getCurrentUserId();
@@ -119,7 +161,7 @@ public class ChatController {
      * Block a user
      */
     @PostMapping("/block/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> blockUser(@PathVariable Long userId) {
         try {
             Long blockerId = getCurrentUserId();
@@ -135,7 +177,7 @@ public class ChatController {
      * Unblock a user
      */
     @PostMapping("/unblock/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> unblockUser(@PathVariable Long userId) {
         try {
             Long blockerId = getCurrentUserId();
@@ -149,25 +191,24 @@ public class ChatController {
 
     /**
      * Start a conversation with a friend
+     * Creates or retrieves existing conversation without sending a message
      */
     @PostMapping("/start/{friendId}")
-    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER') or hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Object>> startConversation(@PathVariable Long friendId) {
         try {
             Long userId = getCurrentUserId();
             
-            // Send an initial message to create/get conversation
-            SendMessageRequest initialMessage = new SendMessageRequest();
-            initialMessage.setReceiverId(friendId);
-            // initialMessage.setMessageText("👋 Hi there!");
-            initialMessage.setMessageType("EMOJI");
+            // Get or create conversation
+            ConversationResponse conversation = chatService.getOrCreateConversationResponse(userId, friendId);
             
-            ChatMessageResponse response = chatService.sendMessage(userId, initialMessage);
+            log.info("Conversation started/retrieved: {} between users {} and {}", 
+                    conversation.getId(), userId, friendId);
             
             return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "conversationId", response.getConversationId(),
-                "initialMessage", response
-            ), "Conversation started"));
+                "conversationId", conversation.getId(),
+                "conversation", conversation
+            ), "Conversation ready"));
         } catch (Exception e) {
             log.error("Error starting conversation: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(ApiResponse.error(e.getMessage(), 500));

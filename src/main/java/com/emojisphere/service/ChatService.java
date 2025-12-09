@@ -210,6 +210,32 @@ public class ChatService {
     }
 
     /**
+     * Get or create conversation and return as response DTO
+     * Public method for starting conversations
+     */
+    public ConversationResponse getOrCreateConversationResponse(Long userId1, Long userId2) {
+        log.info("Getting or creating conversation between users {} and {}", userId1, userId2);
+        
+        // Validate users exist and are active
+        User user1 = userRepository.findById(userId1)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user2 = userRepository.findById(userId2)
+                .orElseThrow(() -> new RuntimeException("Other user not found"));
+
+        if (!user1.getIsActive() || !user2.getIsActive()) {
+            throw new RuntimeException("One or both users are inactive");
+        }
+
+        // Check if users are friends
+        if (!friendshipRepository.areFriends(userId1, userId2)) {
+            throw new RuntimeException("You can only chat with your friends");
+        }
+        
+        ChatConversation conversation = getOrCreateConversation(userId1, userId2);
+        return convertToConversationResponse(conversation, userId1);
+    }
+
+    /**
      * Get or create conversation between two users
      */
     private ChatConversation getOrCreateConversation(Long userId1, Long userId2) {
